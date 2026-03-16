@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <title>Email Verification</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" th:href="@{/css/auth.css}" />
+</head>
+
+<body>
+    <div class="auth-container">
+        <div class="auth-header">
+            <h2>Email Verification</h2>
+        </div>
+
+        <div id="status-message" style="text-align: center; margin-bottom: 1rem;">
+            Verifying your email...
+        </div>
+
+        <div class="auth-links">
+            <a href="/login" class="auth-link" id="login-link" style="display: none;">Go to Login</a>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", async function () {
+            const urlParams = new URLSearchParams(window.location.search);
+            const token = urlParams.get('token');
+            const statusMessage = document.getElementById("status-message");
+            const loginLink = document.getElementById("login-link");
+
+            if (!token) {
+                statusMessage.innerText = "Invalid verification link. Missing token.";
+                statusMessage.className = "error-message";
+                statusMessage.style.display = "block";
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/v1/auth/verify-email?token=${token}`, {
+                    method: 'GET'
+                });
+
+                if (response.ok) {
+                    const text = await response.text();
+                    statusMessage.innerText = text || "Email verified successfully!";
+                    statusMessage.className = "success-message";
+                    statusMessage.style.display = "block";
+                    loginLink.style.display = "inline";
+                } else {
+                    const text = await response.text();
+                    statusMessage.innerText = text || "Verification failed. The token may be invalid or expired.";
+                    statusMessage.className = "error-message";
+                    statusMessage.style.display = "block";
+                }
+            } catch (error) {
+                console.error("Verification error:", error);
+                statusMessage.innerText = "Network error or server unreachable.";
+                statusMessage.className = "error-message";
+                statusMessage.style.display = "block";
+            }
+        });
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>User Dashboard</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        body { margin: 0; font-family: 'Segoe UI', sans-serif; background: linear-gradient(135deg, #e0f7fa, #fff3e0); color: #333; }
+        .dashboard-container { max-width: 600px; margin: 80px auto; background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        h1 { text-align: center; color: #00796b; }
+        .info { margin-top: 2rem; font-size: 1.2rem; }
+        .info p { margin: 0.8rem 0; }
+        .label { font-weight: bold; color: #555; }
+        .logout { display: block; margin-top: 2rem; text-align: center; }
+        .logout button { padding: 10px 20px; background-color: #ff7043; color: white; border: none; cursor: pointer; border-radius: 5px; font-weight: bold; }
+        .logout button:hover { background-color: #f4511e; }
+    </style>
+</head>
+<body>
+<div class="dashboard-container">
+    <h1>Welcome, <span id="username">Loading...</span>!</h1>
+    <div class="info">
+        <p><span class="label">Role:</span> <span id="role">...</span></p>
+        <p><span class="label">Today's Date:</span> <span id="today">...</span></p>
+    </div>
+    <div class="logout">
+        <button onclick="logout()">Logout</button>
+    </div>
+</div>
+
+<script>
+    $(document).ready(function() {
+        const token = localStorage.getItem("accessToken");
+        if (!token) {
+            window.location.href = "/login";
+            return;
+        }
+
+        $.ajax({
+            url: "/api/v1/auth/me",
+            method: "GET",
+            headers: { "Authorization": "Bearer " + token },
+            success: function(data) {
+                $("#username").text(data.username);
+                $("#role").text(data.roles);
+                
+                const options = { year: 'numeric', month: 'long', day: 'numeric' };
+                $("#today").text(new Date().toLocaleDateString(undefined, options));
+            },
+            error: function(xhr) {
+                if(xhr.status === 401) {
+                    // Token likely expired, try refresh or logout
+                   // Simple logout for now, ideally implement refresh logic here too
+                   logout();
+                } else {
+                    alert("Failed to load profile.");
+                }
+            }
+        });
+    });
+
+    function logout() {
+        localStorage.removeItem("accessToken");
+        window.location.href = "/login";
+    }
+</script>
+</body>
+</html>

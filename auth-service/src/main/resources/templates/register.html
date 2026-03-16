@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <title>Registration</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Link the shared CSS -->
+    <link rel="stylesheet" th:href="@{/css/auth.css}" />
+</head>
+
+<body>
+    <div class="auth-container">
+        <div class="auth-header">
+            <h2>Register</h2>
+        </div>
+
+        <div id="error-msg" class="error-message"></div>
+        <div id="success-msg" class="success-message"></div>
+
+        <form id="registerForm" class="auth-form">
+            <div class="form-group">
+                <input class="auth-input" type="text" id="username" placeholder="Username" required />
+            </div>
+            <div class="form-group">
+                <input class="auth-input" type="email" id="email" placeholder="Email Address" required />
+            </div>
+            <div class="form-group">
+                <input class="auth-input" type="password" id="password" placeholder="Password" required />
+            </div>
+            <button class="auth-btn" type="submit">Create Account</button>
+        </form>
+
+        <div class="auth-links">
+            <a href="/login" class="auth-link">Already have an account? Login</a>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('registerForm').addEventListener('submit', async function (event) {
+            event.preventDefault();
+
+            const errorMsg = document.getElementById("error-msg");
+            const successMsg = document.getElementById("success-msg");
+            errorMsg.style.display = "none";
+            successMsg.style.display = "none";
+
+            const payload = {
+                username: document.getElementById('username').value,
+                email: document.getElementById('email').value,
+                password: document.getElementById('password').value
+            };
+
+            try {
+                const response = await fetch('/api/v1/auth/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                if (response.ok) {
+                    successMsg.innerText = "Registration successful! Redirecting to login...";
+                    successMsg.style.display = "block";
+                    setTimeout(() => {
+                        window.location.href = '/login';
+                    }, 2000);
+                } else {
+                    const data = await response.json();
+                    let msg = "Registration failed";
+                    if (data.message) msg = data.message;
+                    // Handle validation errors if they come as a map
+                    if (data.validationError) {
+                        msg = Object.values(data.validationError).join(", ");
+                    }
+                    errorMsg.innerText = msg;
+                    errorMsg.style.display = "block";
+                }
+            } catch (error) {
+                console.error("Registration error:", error);
+                errorMsg.innerText = "Network error or server unreachable";
+                errorMsg.style.display = "block";
+            }
+        });
+    </script>
+</body>
+
+</html>

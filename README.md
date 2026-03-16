@@ -1,83 +1,88 @@
-# Complete-custom-auth
-Spring security best approach, clean and scalable approach
+# Kitchome Platform
 
-![Build Status](repo-diagram.svg)
+**Kitchome Platform** is an intelligent I/O hub designed to seamlessly bridge the gap between users and autonomous agents. Its primary mission is to simplify the complexities of daily life by generating actionable insights and providing strong, well-reasoned justifications for decision-making.
 
-# Complete Custom Auth — Spring Boot JWT Security
-
-A **clean and scalable** Spring Boot project demonstrating a **complete custom authentication system** with:
-
-- JWT-based access and refresh token flows
-- Secure REST endpoints with custom filters
-- Event-driven design using Spring’s Observer pattern (`@EventListener`)
+![Kitchome Platform Architecture](repo-diagram.svg)
 
 ---
 
-##  Features
+## 🌟 Vision & Purpose
 
-###  Authentication & Authorization with JWT
-- `POST /login`: Issues **Access Token** (via HTTP response header) and **Refresh Token** (HttpOnly cookie) on successful login.
-- `POST /api/v1/users/refresh`: Accepts the refresh token cookie, rotates tokens, and issues a new Access Token.
+In an increasingly complex world, making the right choices fast is critical. Kitchome acts as your personal command center, gathering context, orchestrating AI agents, and distilling vast amounts of information into clear, justified decisions.
 
-###  Token Validation & Security Flow
-- **JWTAuthenticationFilter** validates tokens and handles expired/invalid tokens centrally with `AuthenticationEntryPoint` (returns 401 JSON).
-- **AccessDeniedHandler** delivers 403 responses when authenticated users lack required authority.
-- Optionally bypass token validation for refresh endpoint via `shouldNotFilter()` and a `permitAll()` rule in security configuration.
-
-###  Exception Handling
-- REST-centric error handling:
-    - Login failures (e.g. unknown username or invalid credentials) are caught in the controller and return `401 Unauthorized`.
-    - Other authentication failures are handled by Spring Security’s custom `AuthenticationEntryPoint` so controllers aren’t involved.
-
-###  Observer Pattern via Spring Events
-- Demonstrated using a simple publisher/listener setup: e.g.  using `AuthenticationSuccessEvent for decoupled logic.
-
-###  CORS and Request Flow
-- Configured CORS to allow REST clients to access APIs securely.
-- Ensures preflight `OPTIONS` requests bypass security validation where needed to prevent unwanted 403s.
+- **Act as an I/O Hub:** A centralized platform where user inputs and real-world data meet agentic processing.
+- **Ease Decision Making:** Transforms raw data into synthesized insights, reducing cognitive load for the user.
+- **Provide Strong Justifications:** Every recommendation comes with transparent reasoning, so you can trust the decisions being made.
 
 ---
 
-##  Project Structure
-    src/main/java/com/yourapp/
+## 🚀 Key Features
 
-    ├── config/ # Spring Security and CORS configurations
-    ├── controller/ # Login & Refresh endpoints
-    ├── dto/ # Request/Response payloads (AuthRequestDTO, JwtResponseDTO)
-    ├── filter/ # JWTAuthenticationFilter (validates tokens)
-    ├── handler/ # CustomEntryPoint & AccessDeniedHandler
-    ├── service/ # UserDetailsService, RefreshTokenService, JwtUtil
-    ├── event/ # Event publisher/listener examples
-    └── exception/ # (Optional) Custom exceptions
+### 1. Multi-Entry Points for Agents
+Kitchome is built with flexibility in mind, offering multiple entry points and APIs for various specialized agents to connect, ingest data, and deliver outputs. 
 
+### 2. Queen and Worker Orchestration
+The platform employs a sophisticated hierarchical agent architecture:
+- **Queen Agents:** Act as the brain of the operation, delegating tasks, synthesizing results, and ensuring the overall goal is met.
+- **Worker Agents:** Specialized micro-agents dedicated to executing specific tasks (e.g., data gathering, analysis, integration with third-party services).
+
+```mermaid
+graph TD
+    User([👤 User]) -->|Input/Context| IOHub(Kitchome I/O Hub)
+    IOHub -->|Dispatches Task| Queen[👑 Queen Agent]
+    
+    Queen -->|Delegates Research| Worker1[🛠️ Worker Agent: Data Gatherer]
+    Queen -->|Delegates Analysis| Worker2[🛠️ Worker Agent: Analyst]
+    Queen -->|Delegates Action| Worker3[🛠️ Worker Agent: Executor]
+    
+    Worker1 -->|Raw Data| Queen
+    Worker2 -->|Insights| Queen
+    Worker3 -->|Action Status| Queen
+    
+    Queen -->|Synthesized Decision & Justification| IOHub
+    IOHub -->|Actionable Insight| User
+```
+
+### 3. Checkpoint Session-Based Agent Workflows
+To handle long-running and complex tasks, Kitchome supports robust, checkpoint-based sessions:
+- **Stateful Execution:** Agent workflows can be paused, inspected, or resumed at specific checkpoints.
+- **Resilience:** Ensures that long-running processes do not lose progress in case of interruptions.
+- **Audibility:** Users can review the justification and intermediate steps at any checkpoint before proceeding to the final decision.
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant Q as Queen Agent
+    participant W as Worker Agents
+    participant S as State/Checkpoint DB
+
+    U->>Q: Initiate Task/Context
+    Q->>S: Save Checkpoint (Task Started)
+    Q->>W: Assign Sub-tasks
+    W-->>Q: Sub-task 1 Complete
+    Q->>S: Save Checkpoint (Phase 1 Complete)
+    Q->>U: Request Human-in-the-loop (Optional)
+    U-->>Q: Approve Progress / Inject new context
+    W-->>Q: Sub-task 2 Complete
+    Q->>S: Save Checkpoint (Phase 2 Complete)
+    Q->>U: Deliver Final Insights & Justification
+```
 
 ---
 
-##  How It Works
+## 🛠️ Technology Stack (Current State)
 
-1. **Login Flow:**
-    - Client calls `/login` with credentials.
-    - On success, controller authenticates, generates JWTs, sets response header and cookie.
+Currently, the foundation of the Kitchome platform consists of a robust backend service architecture built with **Spring Boot**:
 
-2. **Token Refresh Flow:**
-    - Client sends `POST /refresh` with refresh token cookie.
-    - Filter skips validation for this endpoint (`shouldNotFilter()`).
-    - New Access + Refresh tokens are issued; old refresh token invalidated.
+- **Authentication & Security:** JWT-based access flows with custom credential management for linking external third-party tools (Google Calendar, HubSpot, etc.).
+- **Microservices Architecture:** Segregated into modules like `auth-service`, `user-service`, and `notification-service`.
+- **Thread-safe Integrations:** Secure, asynchronous token refreshing and secret management using tools like Vault.
 
-3. **Accessing Protected Endpoints:**
-    - JWT filter validates the access token from the `Authorization` header.
-    - If valid, sets `SecurityContext`; otherwise, triggers the custom entry point (401).
-
-4. **Observer Example:**
-    - A service publishes an event (e.g., AuthenticationSuccessEvent).
-    - A listener logs or commits into log data without tight coupling.
-
----
-
-##  Getting Started
+## 📦 Getting Started
 
 ```bash
 git clone https://github.com/Saurabh1374/Complete-custom-auth.git
 cd Complete-custom-auth
 ./mvnw clean package
-java -jar target/complete-custom-auth-0.0.1-SNAPSHOT.jar
+java -jar auth-service/target/authentication-0.0.1-SNAPSHOT.war
+```

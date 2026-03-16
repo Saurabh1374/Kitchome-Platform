@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <title>Login</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Link the shared CSS -->
+    <link rel="stylesheet" th:href="@{/css/auth.css}" />
+</head>
+
+<body>
+    <div class="auth-container">
+        <div class="auth-header">
+            <h2>Login</h2>
+        </div>
+
+        <div id="error-msg" class="error-message"></div>
+
+        <form id="loginForm" class="auth-form">
+            <div class="form-group">
+                <input class="auth-input" type="text" id="username" name="username" placeholder="Username" required />
+            </div>
+            <div class="form-group">
+                <input class="auth-input" type="password" id="password" name="password" placeholder="Password"
+                    required />
+            </div>
+            <button class="auth-btn" type="submit">Login</button>
+        </form>
+
+        <div class="auth-links">
+            <a href="/register" class="auth-link">Create new account</a>
+            <a href="/forgot-password" class="auth-link">Forgot Password?</a>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const token = localStorage.getItem("accessToken");
+            if (token) {
+                // Optional: Check token validity before redirecting
+                window.location.href = "/dashboard";
+            }
+
+            const loginForm = document.getElementById("loginForm");
+            const errorMsg = document.getElementById("error-msg");
+
+            loginForm.addEventListener("submit", async function (event) {
+                event.preventDefault();
+                errorMsg.style.display = "none";
+                errorMsg.innerText = "";
+
+                const payload = {
+                    username: document.getElementById("username").value,
+                    password: document.getElementById("password").value
+                };
+
+                try {
+                    const response = await fetch("/api/v1/auth/login", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify(payload)
+                    });
+
+                    const data = await response.json();
+
+                    if (response.ok && data.accessToken) {
+                        localStorage.setItem("accessToken", data.accessToken);
+                        window.location.href = "/dashboard";
+                    } else {
+                        // Attempt to extract error message
+                        let msg = "Login failed";
+                        if (response.status === 401) msg = "Invalid username or password";
+                        else if (data.message) msg = data.message;
+
+                        errorMsg.innerText = msg;
+                        errorMsg.style.display = "block";
+                    }
+                } catch (error) {
+                    console.error("Login error:", error);
+                    errorMsg.innerText = "Network error or server unreachable";
+                    errorMsg.style.display = "block";
+                }
+            });
+        });
+    </script>
+</body>
+
+</html>
