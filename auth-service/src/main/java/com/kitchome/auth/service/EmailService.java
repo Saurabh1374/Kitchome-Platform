@@ -38,6 +38,8 @@ public class EmailService {
         }
     }
 
+
+
     @Async
     public void sendPasswordResetEmail(String to, String token) {
         try {
@@ -62,8 +64,12 @@ public class EmailService {
         helper.setSubject(subject);
         helper.setText(htmlContent, true);
 
-        mailSender.send(message);
-        log.info("Email sent to {} with subject: {}", to, subject);
+        try {
+            mailSender.send(message);
+            log.info("Email sent to {} with subject: {}", to, subject);
+        } catch (org.springframework.mail.MailException e) {
+            log.error("Failed to authenticate or send email to {}. Verity SMTP credentials: {}", to, e.getMessage());
+        }
     }
 
     private String buildEmailContent(String message, String buttonText, String link) {

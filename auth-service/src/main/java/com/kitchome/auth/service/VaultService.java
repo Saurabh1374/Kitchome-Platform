@@ -9,9 +9,12 @@ import org.springframework.vault.support.VaultResponse;
 import java.util.Map;
 import java.util.Optional;
 
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
+@ConditionalOnProperty(name = "app.credentials.storage.vault.enabled", havingValue = "true")
 public class VaultService {
 
     private final VaultOperations vaultOperations;

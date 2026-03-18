@@ -1,19 +1,21 @@
 package com.kitchome.auth.controller;
 
 import com.kitchome.auth.Exception.AuthException;
-import com.kitchome.auth.authentication.CustomUserDetails;
 import com.kitchome.auth.authentication.UserCredentials;
 import com.kitchome.auth.entity.RefreshToken;
 import com.kitchome.auth.entity.User;
 import com.kitchome.auth.payload.AuthRequestDTO;
+import com.kitchome.auth.payload.IntegrationInfoDTO;
 import com.kitchome.auth.payload.JwtResponseDTO;
 import com.kitchome.auth.payload.RegisterUserDTO;
 import com.kitchome.auth.payload.UserProfileDTO;
+import com.kitchome.auth.payload.IntegrationLinkRequest;
 import com.kitchome.auth.service.RefreshTokenService;
 import com.kitchome.auth.util.ErrorCode;
 import com.kitchome.auth.util.JwtUtil;
-import com.kitchome.auth.payload.IntegrationLinkRequest;
 import com.kitchome.common.payload.ApiResponse;
+import com.kitchome.auth.payload.IntegrationInfoDTO;
+import java.util.List;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -27,7 +29,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.userdetails.UserDetails;
 import reactor.core.publisher.Mono;
 import org.springframework.web.bind.annotation.*;
 
@@ -45,65 +46,50 @@ public class AuthRestController {
     private final JwtUtil jwtUtil;
     private final RefreshTokenService refreshTokenService;
     private final com.kitchome.auth.service.ForgotPasswordService forgotPasswordService;
-    private final com.kitchome.auth.service.NotificationClient notificationClient;
     private final com.kitchome.auth.service.ThirdPartyIntegrationService integrationService;
+    private final com.kitchome.auth.service.AuthenticationService authService;
 
     @PostMapping("/register")
     public ResponseEntity<ApiResponse<String>> createUser(@RequestBody @Valid RegisterUserDTO userDto) {
         userService.registerUser(userDto);
-
-        // Trigger async notification
-        notificationClient.sendNotification("EMAIL", userDto.getEmail(),
-                "Welcome to KitChome! Please verify your account.", null).subscribe();
-
         return ResponseEntity
                 .status(HttpStatus.CREATED)
-                .body(ApiResponse.<String>success("User registered successfully", "Registration successful"));
+                .body(ApiResponse.<String>success(
+                        "Registration successful. Please check your email for the verification link.",
+                        "Registration initiated"));
     }
 
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<JwtResponseDTO>> login(@RequestBody AuthRequestDTO request,
             HttpServletRequest httpRequest, HttpServletResponse response) {
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword()));
+        try {
+            Authentication authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword()));
 
-        UserDetails user = (UserDetails) authentication.getPrincipal();
+            String accessToken = authService.finalizeLogin(httpRequest, response, authentication);
 
-        String accessToken = jwtUtil.generateToken(user.getUsername());
-
-        String fingerprint = getFingerprint(httpRequest);
-        String ip = httpRequest.getRemoteAddr();
-        String userAgent = httpRequest.getHeader("User-Agent");
-
-        RefreshToken refreshToken = refreshTokenService
-                .generateAndStoreRefreshToken(user.getUsername(), fingerprint, ip, userAgent);
-
-        HttpHeaders headers = new HttpHeaders();
-        headers.add(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken);
-
-        ResponseCookie refreshCookie = ResponseCookie.from("refreshToken", refreshToken.getToken())
-                .httpOnly(true)
-                .secure(false) // TODO: Set to true in production
-                .path("/")
-                .maxAge(15 * 24 * 60 * 60)
-                .sameSite("Strict")
-                .build();
-
-        response.addHeader(HttpHeaders.SET_COOKIE, refreshCookie.toString());
-
-        return ResponseEntity.status(HttpStatus.OK).headers(headers)
-                .body(ApiResponse.<JwtResponseDTO>success(new JwtResponseDTO(accessToken, refreshToken.getToken())));
+            return ResponseEntity.status(HttpStatus.OK)
+                    .body(ApiResponse.<JwtResponseDTO>success(new JwtResponseDTO(accessToken, null)));
+        } catch (org.springframework.security.authentication.DisabledException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(ApiResponse.<JwtResponseDTO>error("Account disabled. Please verify your email.", "DISABLED",
+                            HttpStatus.FORBIDDEN));
+        } catch (org.springframework.security.authentication.BadCredentialsException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(ApiResponse.<JwtResponseDTO>error("Invalid username or password", "UNAUTHORIZED",
+                            HttpStatus.UNAUTHORIZED));
+        }
     }
 
     @PostMapping("/agent/login")
-    public ResponseEntity<ApiResponse<JwtResponseDTO>> agentLogin(@RequestBody AuthRequestDTO request) {
+    public ResponseEntity<ApiResponse<JwtResponseDTO>> agentLogin(@RequestBody AuthRequestDTO request,
+            HttpServletRequest httpRequest, HttpServletResponse response) {
         // For simplicity, agents login with username/password too, but get an agent_id
         // claim
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword()));
 
-        String agentId = "agent-" + java.util.UUID.randomUUID().toString().substring(0, 8);
-        String accessToken = jwtUtil.generateToken(authentication.getName(), agentId, Arrays.asList("read", "write"));
+        String accessToken = authService.finalizeLogin(httpRequest, response, authentication);
 
         return ResponseEntity.ok(ApiResponse.<JwtResponseDTO>success(new JwtResponseDTO(accessToken, null)));
     }
@@ -191,9 +177,16 @@ public class AuthRestController {
     }
 
     @GetMapping("/verify-email")
-    public ResponseEntity<ApiResponse<String>> verifyEmail(@RequestParam("token") String token) {
-        userService.verifyEmail(token);
-        return ResponseEntity.ok(ApiResponse.<String>success("Email verified successfully! You can now login."));
+    public ResponseEntity<ApiResponse<String>> verifyEmail(@RequestParam String token) {
+        userService.verifyUser(token);
+        return ResponseEntity.ok(ApiResponse.<String>success("Email verified successfully. You can now login."));
+    }
+
+    @PostMapping("/resend-verification")
+    public ResponseEntity<ApiResponse<String>> resendVerification(@RequestBody java.util.Map<String, String> payload) {
+        String email = payload.get("email");
+        userService.resendVerificationLink(email);
+        return ResponseEntity.ok(ApiResponse.<String>success("A new verification link has been sent to your email."));
     }
 
     @PostMapping("/forgot-password")
@@ -231,11 +224,10 @@ public class AuthRestController {
     }
 
     @GetMapping("/integrations/{name}/authorize")
-    public ResponseEntity<Void> authorizeIntegration(@PathVariable String name, Authentication auth) {
+    public ResponseEntity<ApiResponse<java.util.Map<String, String>>> authorizeIntegration(@PathVariable String name,
+            Authentication auth) {
         String authUrl = integrationService.getAuthorizationLink(name, auth.getName());
-        return ResponseEntity.status(org.springframework.http.HttpStatus.FOUND)
-                .location(java.net.URI.create(authUrl))
-                .build();
+        return ResponseEntity.ok(ApiResponse.success(java.util.Map.of("authorizationUrl", authUrl)));
     }
 
     @GetMapping("/integrations/{name}/callback")
@@ -247,13 +239,11 @@ public class AuthRestController {
                 .thenReturn(ResponseEntity
                         .ok(ApiResponse.success("Successfully linked " + name + ". You can now close this window.")));
     }
+
+    @GetMapping("/integrations")
+    public ResponseEntity<ApiResponse<List<IntegrationInfoDTO>>> getIntegrations(Authentication auth) {
+        return ResponseEntity.ok(ApiResponse.success(integrationService.getAvailableIntegrations(auth.getName())));
+    }
+
+
 }
-// Rethinking strategy: I need to add the field and endpoint.
-// replace_file_content is for contiguous blocks.
-// I should split this. First add the field, then the methods.
-// But wait, `RequiredArgsConstructor` generates constructor. If I add a final
-// field, it breaks existing manual constructor calls if any (none here, it's a
-// Controller).
-// However, adding a field requires touching the class beginning. Adding methods
-// touches the end.
-// Use multi_replace for this.

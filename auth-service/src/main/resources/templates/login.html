@@ -1,45 +1,60 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head('Login')}"></head>
+<body style="display: flex; flex-direction: column; min-height: 100vh;">
+    <nav th:replace="~{fragments :: navbar}"></nav>
 
-<head>
-    <title>Login</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- Link the shared CSS -->
-    <link rel="stylesheet" th:href="@{/css/auth.css}" />
-</head>
-
-<body>
-    <div class="auth-container">
-        <div class="auth-header">
-            <h2>Login</h2>
-        </div>
-
-        <div id="error-msg" class="error-message"></div>
-
-        <form id="loginForm" class="auth-form">
-            <div class="form-group">
-                <input class="auth-input" type="text" id="username" name="username" placeholder="Username" required />
+    <main style="flex: 1; display: flex; align-items: center; justify-content: center; padding: 2rem;">
+        <div class="glass animate-slide-up" style="width: 100%; max-width: 440px; padding: 3rem; border-radius: 28px; box-shadow: var(--shadow-xl);">
+            <div style="text-align: center; margin-bottom: 2.5rem;">
+                <h2 style="font-size: 2rem; font-weight: 700; margin-bottom: 0.5rem;" class="text-gradient">Welcome Back</h2>
+                <p style="color: var(--text-muted);">Please enter your details to sign in.</p>
             </div>
-            <div class="form-group">
-                <input class="auth-input" type="password" id="password" name="password" placeholder="Password"
-                    required />
-            </div>
-            <button class="auth-btn" type="submit">Login</button>
-        </form>
 
-        <div class="auth-links">
-            <a href="/register" class="auth-link">Create new account</a>
-            <a href="/forgot-password" class="auth-link">Forgot Password?</a>
+            <div id="error-msg" class="glass" style="display: none; padding: 1rem; border-radius: 12px; background: rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.2); color: var(--danger); margin-bottom: 1.5rem; font-size: 0.875rem; text-align: center;"></div>
+
+            <form id="loginForm">
+                <div class="input-group">
+                    <label class="input-label" for="username">Username</label>
+                    <input class="auth-input" type="text" id="username" name="username" placeholder="johndoe" required />
+                </div>
+                <div class="input-group" style="margin-bottom: 0.75rem;">
+                    <label class="input-label" for="password">Password</label>
+                    <input class="auth-input" type="password" id="password" name="password" placeholder="••••••••" required />
+                </div>
+                
+                <div style="display: flex; justify-content: flex-end; margin-bottom: 2rem;">
+                    <a href="/forgot-password" style="font-size: 0.875rem; color: var(--primary-light); text-decoration: none; font-weight: 500;">Forgot password?</a>
+                </div>
+
+                <button class="btn btn-primary" type="submit" style="width: 100%; padding: 1rem;">Sign In</button>
+                
+                <div style="text-align: center; margin: 1.5rem 0; display: flex; align-items: center; gap: 1rem;">
+                    <div style="flex: 1; height: 1px; background: var(--glass-border);"></div>
+                    <span style="color: var(--text-dim); font-size: 0.875rem;">or continue with</span>
+                    <div style="flex: 1; height: 1px; background: var(--glass-border);"></div>
+                </div>
+                
+                <a href="/oauth2/authorization/google" class="btn btn-outline" style="width: 100%; gap: 0.75rem;">
+                    <svg width="20" height="20" viewBox="0 0 24 24"><path fill="#EA4335" d="M24 12.27c0-.85-.07-1.53-.22-2.23H12v4.22h6.7c-.3 1.64-1.24 3.01-2.66 3.93v3.25h4.31c2.52-2.32 3.95-5.74 3.95-9.17z"/><path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-4.31-3.25c-1.19.8-2.71 1.28-4.33 1.28-3.33 0-6.16-2.26-7.17-5.32H1.2v3.3C3.21 21.03 7.31 24 12 24z"/><path fill="#FBBC05" d="M4.83 14.8c-.26-.8-.41-1.63-.41-2.5s.15-1.7.41-2.5V6.5H1.2a11.97 11.97 0 0 0 0 11l3.63-2.7z"/><path fill="#4285F4" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.43-3.43C17.93 1.19 15.22 0 12 0 7.31 0 3.21 2.97 1.2 6.5l3.63 2.7c1.01-3.06 3.84-5.32 7.17-5.32z"/></svg>
+                    Google
+                </a>
+            </form>
+
+            <div style="text-align: center; margin-top: 2rem;">
+                <p style="color: var(--text-muted); font-size: 0.875rem;">
+                    Don't have an account? 
+                    <a href="/register" style="color: var(--primary-light); text-decoration: none; font-weight: 600;">Sign up</a>
+                </p>
+            </div>
         </div>
-    </div>
+    </main>
+
+    <footer th:replace="~{fragments :: footer}"></footer>
 
     <script>
         document.addEventListener("DOMContentLoaded", function () {
-            const token = localStorage.getItem("accessToken");
-            if (token) {
-                // Optional: Check token validity before redirecting
-                window.location.href = "/dashboard";
-            }
+            // Auth state is now managed by cookies, backend will handle redirects for authenticated users accessing /login.
 
             const loginForm = document.getElementById("loginForm");
             const errorMsg = document.getElementById("error-msg");
@@ -47,7 +62,11 @@
             loginForm.addEventListener("submit", async function (event) {
                 event.preventDefault();
                 errorMsg.style.display = "none";
-                errorMsg.innerText = "";
+                
+                const submitBtn = loginForm.querySelector('button[type="submit"]');
+                const originalText = submitBtn.innerText;
+                submitBtn.innerText = "Signing in...";
+                submitBtn.disabled = true;
 
                 const payload = {
                     username: document.getElementById("username").value,
@@ -57,34 +76,32 @@
                 try {
                     const response = await fetch("/api/v1/auth/login", {
                         method: "POST",
-                        headers: {
-                            "Content-Type": "application/json"
-                        },
+                        headers: { "Content-Type": "application/json" },
                         body: JSON.stringify(payload)
                     });
 
                     const data = await response.json();
 
-                    if (response.ok && data.accessToken) {
-                        localStorage.setItem("accessToken", data.accessToken);
+                    if (response.ok) {
                         window.location.href = "/dashboard";
                     } else {
-                        // Attempt to extract error message
-                        let msg = "Login failed";
+                        let msg = "Authentication failed. Please check your credentials.";
                         if (response.status === 401) msg = "Invalid username or password";
                         else if (data.message) msg = data.message;
 
                         errorMsg.innerText = msg;
                         errorMsg.style.display = "block";
+                        submitBtn.innerText = originalText;
+                        submitBtn.disabled = false;
                     }
                 } catch (error) {
-                    console.error("Login error:", error);
-                    errorMsg.innerText = "Network error or server unreachable";
+                    errorMsg.innerText = "Connection error. Please try again later.";
                     errorMsg.style.display = "block";
+                    submitBtn.innerText = originalText;
+                    submitBtn.disabled = false;
                 }
             });
         });
     </script>
 </body>
-
 </html>

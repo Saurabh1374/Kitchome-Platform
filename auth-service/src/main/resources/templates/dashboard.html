@@ -1,68 +1,239 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
-<head>
-    <meta charset="UTF-8">
-    <title>User Dashboard</title>
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <style>
-        body { margin: 0; font-family: 'Segoe UI', sans-serif; background: linear-gradient(135deg, #e0f7fa, #fff3e0); color: #333; }
-        .dashboard-container { max-width: 600px; margin: 80px auto; background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
-        h1 { text-align: center; color: #00796b; }
-        .info { margin-top: 2rem; font-size: 1.2rem; }
-        .info p { margin: 0.8rem 0; }
-        .label { font-weight: bold; color: #555; }
-        .logout { display: block; margin-top: 2rem; text-align: center; }
-        .logout button { padding: 10px 20px; background-color: #ff7043; color: white; border: none; cursor: pointer; border-radius: 5px; font-weight: bold; }
-        .logout button:hover { background-color: #f4511e; }
-    </style>
-</head>
-<body>
-<div class="dashboard-container">
-    <h1>Welcome, <span id="username">Loading...</span>!</h1>
-    <div class="info">
-        <p><span class="label">Role:</span> <span id="role">...</span></p>
-        <p><span class="label">Today's Date:</span> <span id="today">...</span></p>
-    </div>
-    <div class="logout">
-        <button onclick="logout()">Logout</button>
-    </div>
-</div>
 
-<script>
-    $(document).ready(function() {
-        const token = localStorage.getItem("accessToken");
-        if (!token) {
-            window.location.href = "/login";
-            return;
-        }
+<head th:replace="~{fragments :: head('Dashboard')}"></head>
 
-        $.ajax({
-            url: "/api/v1/auth/me",
-            method: "GET",
-            headers: { "Authorization": "Bearer " + token },
-            success: function(data) {
-                $("#username").text(data.username);
-                $("#role").text(data.roles);
-                
-                const options = { year: 'numeric', month: 'long', day: 'numeric' };
-                $("#today").text(new Date().toLocaleDateString(undefined, options));
-            },
-            error: function(xhr) {
-                if(xhr.status === 401) {
-                    // Token likely expired, try refresh or logout
-                   // Simple logout for now, ideally implement refresh logic here too
-                   logout();
-                } else {
-                    alert("Failed to load profile.");
+<body style="background-color: var(--bg-darker);">
+    <nav th:replace="~{fragments :: navbar}"></nav>
+
+    <div style="max-width: 1400px; margin: 0 auto; display: flex; gap: 2rem; padding: 0 2rem 4rem;">
+        <!-- Sidebar -->
+        <aside th:replace="~{fragments :: sidebar}"></aside>
+
+        <!-- Main Content -->
+        <main style="flex: 1; display: flex; flex-direction: column; gap: 2rem;">
+            <!-- Profile Hero -->
+            <section class="glass animate-slide-up"
+                style="padding: 2.5rem; border-radius: 24px; display: flex; align-items: center; justify-content: space-between;">
+                <div style="display: flex; align-items: center; gap: 1.5rem;">
+                    <div
+                        style="width: 80px; height: 80px; background: linear-gradient(135deg, var(--primary), var(--secondary)); border-radius: 20px; display: flex; align-items: center; justify-content: center; font-size: 2rem; font-weight: 700; color: white; box-shadow: var(--shadow-lg);">
+                        <span id="user-initial">?</span>
+                    </div>
+                    <div>
+                        <h1 style="font-size: 1.75rem; font-weight: 700; margin-bottom: 0.25rem;">Welcome back, <span
+                                id="display-username" class="text-gradient">Loading...</span>!</h1>
+                        <p style="color: var(--text-muted); font-size: 1rem;">Here's an overview of your security &
+                            integrations.</p>
+                    </div>
+                </div>
+                <div style="text-align: right;">
+                    <p id="today-date" style="font-weight: 600; color: var(--text-main);"></p>
+                    <p style="font-size: 0.875rem; color: var(--text-dim);">Last login: 2 hours ago</p>
+                </div>
+            </section>
+
+            <!-- Stats Grid -->
+            <section style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.5rem;"
+                class="animate-slide-up">
+                <div class="glass" style="padding: 1.5rem; border-radius: 20px;">
+                    <div
+                        style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;">
+                        <span style="color: var(--text-muted); font-size: 0.875rem; font-weight: 600;">ACTIVE
+                            INTEGRATIONS</span>
+                        <div
+                            style="color: var(--primary-light); background: rgba(99, 102, 241, 0.1); padding: 0.5rem; border-radius: 10px;">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+                            </svg>
+                        </div>
+                    </div>
+                    <p id="integration-count" style="font-size: 2rem; font-weight: 700;">0</p>
+                    <p style="font-size: 0.75rem; color: var(--success); margin-top: 0.5rem; font-weight: 600;">↑ 2
+                        since last month</p>
+                </div>
+
+                <div class="glass" style="padding: 1.5rem; border-radius: 20px;">
+                    <div
+                        style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;">
+                        <span style="color: var(--text-muted); font-size: 0.875rem; font-weight: 600;">SECURITY
+                            STATUS</span>
+                        <div
+                            style="color: var(--success); background: rgba(16, 185, 129, 0.1); padding: 0.5rem; border-radius: 10px;">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                            </svg>
+                        </div>
+                    </div>
+                    <p style="font-size: 2rem; font-weight: 700;">Optimal</p>
+                    <p style="font-size: 0.75rem; color: var(--text-dim); margin-top: 0.5rem; font-weight: 600;">2FA
+                        Enabled</p>
+                </div>
+
+                <div class="glass" style="padding: 1.5rem; border-radius: 20px;">
+                    <div
+                        style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;">
+                        <span style="color: var(--text-muted); font-size: 0.875rem; font-weight: 600;">ACCOUNT
+                            ROLE</span>
+                        <div
+                            style="color: var(--secondary-light); background: rgba(236, 72, 153, 0.1); padding: 0.5rem; border-radius: 10px;">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                                <circle cx="8.5" cy="7" r="4" />
+                                <line x1="20" y1="8" x2="20" y2="14" />
+                                <line x1="23" y1="11" x2="17" y2="11" />
+                            </svg>
+                        </div>
+                    </div>
+                    <p id="user-role" style="font-size: 2rem; font-weight: 700;">User</p>
+                    <p style="font-size: 0.75rem; color: var(--text-dim); margin-top: 0.5rem; font-weight: 600;">Pro
+                        Plan</p>
+                </div>
+            </section>
+
+            <!-- Insights Grid -->
+            <section style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem;" class="animate-slide-up">
+                <div class="glass" style="padding: 1.5rem; border-radius: 20px; background: linear-gradient(135deg, rgba(99, 102, 241, 0.05), rgba(168, 85, 247, 0.05));">
+                    <h4 style="font-size: 0.875rem; color: var(--text-muted); margin-bottom: 1rem;">INTEGRATION HEALTH</h4>
+                    <div style="display: flex; gap: 1rem; align-items: flex-end;">
+                        <div style="flex: 1; height: 40px; background: var(--success); opacity: 0.3; border-radius: 4px;"></div>
+                        <div style="flex: 1; height: 60px; background: var(--success); opacity: 0.5; border-radius: 4px;"></div>
+                        <div style="flex: 1; height: 30px; background: var(--success); opacity: 0.4; border-radius: 4px;"></div>
+                        <div style="flex: 1; height: 80px; background: var(--success); border-radius: 4px;"></div>
+                        <div style="flex: 1; height: 70px; background: var(--success); opacity: 0.8; border-radius: 4px;"></div>
+                    </div>
+                    <p style="font-size: 0.75rem; color: var(--text-dim); margin-top: 1rem;">Uptime: 99.9% (Last 7 days)</p>
+                </div>
+
+                <div class="glass" style="padding: 1.5rem; border-radius: 20px;">
+                    <h4 style="font-size: 0.875rem; color: var(--text-muted); margin-bottom: 1rem;">SECURITY INSIGHTS</h4>
+                    <div style="display: flex; align-items: center; gap: 1rem;">
+                        <div style="flex: 1;">
+                            <p style="font-size: 1.25rem; font-weight: 700;">No Threats</p>
+                            <p style="font-size: 0.75rem; color: var(--success);">System secure</p>
+                        </div>
+                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2" style="opacity: 0.5;"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Lower Grid -->
+            <section style="display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem;" class="animate-slide-up">
+                <!-- Recent Activity -->
+                <div class="glass" style="padding: 2rem; border-radius: 24px;">
+                    <h3
+                        style="font-size: 1.25rem; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.75rem;">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                        </svg>
+                        Recent Activity
+                    </h3>
+                    <div style="display: flex; flex-direction: column; gap: 1rem;">
+                        <div
+                            style="padding: 1rem; border-radius: 12px; background: rgba(255,255,255,0.02); display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <p style="font-weight: 600; font-size: 0.9375rem;">Connected HubSpot CRM</p>
+                                <p style="font-size: 0.8125rem; color: var(--text-dim);">Authorization successful</p>
+                            </div>
+                            <span style="font-size: 0.75rem; color: var(--text-dim);">12 mins ago</span>
+                        </div>
+                        <div
+                            style="padding: 1rem; border-radius: 12px; background: rgba(255,255,255,0.02); display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <p style="font-weight: 600; font-size: 0.9375rem;">Email Verified</p>
+                                <p style="font-size: 0.8125rem; color: var(--text-dim);">Identity confirmed</p>
+                            </div>
+                            <span style="font-size: 0.75rem; color: var(--text-dim);">1 hour ago</span>
+                        </div>
+                        <div
+                            style="padding: 1rem; border-radius: 12px; background: rgba(255,255,255,0.02); display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <p style="font-weight: 600; font-size: 0.9375rem;">Login from new device</p>
+                                <p style="font-size: 0.8125rem; color: var(--text-dim);">MacBook Pro (Chrome)</p>
+                            </div>
+                            <span style="font-size: 0.75rem; color: var(--text-dim);">2 hours ago</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="glass"
+                    style="padding: 2rem; border-radius: 24px; display: flex; flex-direction: column; gap: 1rem;">
+                    <h3 style="font-size: 1.25rem; margin-bottom: 0.5rem;">Quick Actions</h3>
+                    <button onclick="window.location.href='/integrations'" class="btn btn-primary"
+                        style="width: 100%; justify-content: flex-start;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+                        </svg>
+                        Add Integration
+                    </button>
+                    <button class="btn btn-outline" style="width: 100%; justify-content: flex-start;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                        </svg>
+                        Security Audit
+                    </button>
+                    <button onclick="logout()" class="btn btn-outline"
+                        style="width: 100%; justify-content: flex-start; color: var(--danger); border-color: rgba(239, 68, 68, 0.2);">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                            <polyline points="16 17 21 12 16 7" />
+                            <line x1="21" y1="12" x2="9" y2="12" />
+                        </svg>
+                        Logout
+                    </button>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <footer th:replace="~{fragments :: footer}"></footer>
+
+    <script>
+        $(document).ready(function () {
+            // Set current date
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            $("#today-date").text(new Date().toLocaleDateString(undefined, options));
+
+            // Fetch User Data
+            $.ajax({
+                url: "/api/v1/auth/me",
+                method: "GET",
+                success: function (data) {
+                    $("#display-username").text(data.username);
+                    $("#user-initial").text(data.username.charAt(0).toUpperCase());
+                    $("#user-role").text(data.roles || 'User');
+
+                    // Fetch Integrations Count
+                    fetchIntegrationsCount(token);
+                },
+                error: function (xhr) {
+                    if (xhr.status === 401) logout();
                 }
-            }
+            });
         });
-    });
 
-    function logout() {
-        localStorage.removeItem("accessToken");
-        window.location.href = "/login";
-    }
-</script>
+        function fetchIntegrationsCount(token) {
+            $.ajax({
+                url: "/api/v1/auth/integrations",
+                method: "GET",
+                headers: { "Authorization": "Bearer " + token },
+                success: function (response) {
+                    if (response.data) {
+                        const connectedCount = response.data.filter(i => i.connected).length;
+                        $("#integration-count").text(connectedCount);
+                    }
+                }
+            });
+        }
+    </script>
 </body>
+
 </html>

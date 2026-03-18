@@ -7,7 +7,10 @@ import org.springframework.boot.web.servlet.support.SpringBootServletInitializer
 
 
 
-@SpringBootApplication
+import org.springframework.cloud.vault.config.VaultAutoConfiguration;
+import org.springframework.cloud.vault.config.VaultReactiveAutoConfiguration;
+
+@SpringBootApplication(exclude = {VaultAutoConfiguration.class, VaultReactiveAutoConfiguration.class})
 public class AuthenticationApplication extends SpringBootServletInitializer{
 
 	public static void main(String[] args) {

@@ -15,8 +15,9 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-
 import com.kitchome.auth.dao.UserRepositoryDao;
+import com.kitchome.auth.dao.VerificationTokenRepository;
+import com.kitchome.auth.entity.VerificationToken;
 import com.kitchome.auth.entity.User;
 
 @Service
@@ -25,72 +26,121 @@ public class UserCredentials implements UserDetailsService {
 	private final UserRepositoryDao userRepo;
 	private final PasswordEncoder encryptionStrategy;
 	private final ObjectMapper mapper;
-
-	private final com.kitchome.auth.dao.VerificationTokenRepository verificationTokenRepository;
 	private final com.kitchome.auth.service.EmailService emailService;
+	private final VerificationTokenRepository tokenRepository;
 
 	public UserCredentials(UserRepositoryDao userRepo, PasswordEncoder encryptionStrategy, ObjectMapper mapper,
-			com.kitchome.auth.dao.VerificationTokenRepository verificationTokenRepository,
-			com.kitchome.auth.service.EmailService emailService) {
+			com.kitchome.auth.service.EmailService emailService,
+			VerificationTokenRepository tokenRepository) {
 		super();
 		this.userRepo = userRepo;
 		this.encryptionStrategy = encryptionStrategy;
 		this.mapper = mapper;
-		this.verificationTokenRepository = verificationTokenRepository;
 		this.emailService = emailService;
+		this.tokenRepository = tokenRepository;
 	}
 
 	@Override
 	public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-		// TODO Auto-generated method stub
 		Optional<UserCredProjection> userOpt = userRepo.findByEmailIgnoreCase(username);
 		if (userOpt.isEmpty()) {
 			userOpt = userRepo.findByUsernameIgnoreCase(username);
 		}
 
-		return userOpt.map(CustomUserDetails::new)
-				.orElseThrow(() -> new UsernameNotFoundException("User not found with email or username: " + username));
+		if (userOpt.isPresent()) {
+			return new CustomUserDetails(userOpt.get());
+		}
 
+		throw new UsernameNotFoundException("User not found with email or username: " + username);
 	}
 
 	public Boolean registerUser(RegisterUserDTO userdto) {
-		// register user
-		ValidationResult result = userAlreadyExists(userdto.getEmail());
-		if (!result.isvalid()) {
-			throw new ValidationException("Email Already exist", "VALIDATION_ERROR", result.getValidationError());
+		// 1. Check if user already exists
+		Optional<UserCredProjection> existingUserOpt = userRepo.findByEmailIgnoreCase(userdto.getEmail());
+
+		if (existingUserOpt.isPresent()) {
+			UserCredProjection existingUser = existingUserOpt.get();
+			if (existingUser.isEmailVerified()) {
+				// If verified, block registration
+				ValidationResult result = new ValidationResult(ValidationError.builder()
+						.fieldName("Email")
+						.message("Email already exists: " + userdto.getEmail())
+						.errorCode(ErrorCode.USER_ALREADY_AVAILABLE.getErrorCode())
+						.build());
+				throw new ValidationException("Email Already exist", "VALIDATION_ERROR", result.getValidationError());
+			} else {
+				// If NOT verified, delete old entry and proceed
+				User u = userRepo.findById(existingUser.getId()).get();
+				// Delete tokens first (due to FK)
+				tokenRepository.findByUser(u).ifPresent(tokenRepository::delete);
+				userRepo.delete(u);
+			}
 		}
-		userdto.setPassword(encryptionStrategy.encode(userdto.getPassword()));
-		User user = mapper.convertValue(userdto, User.class);
-		user.setRoles(Role.USER);
-		user.setEnabled(false); // Disable until verified
-		userRepo.save(user);
 
-		// Generate Verification Token
+		// 2. Create new user
+		User user = new User();
+		user.setUsername(userdto.getUsername());
+		user.setEmail(userdto.getEmail());
+		user.setPassword(encryptionStrategy.encode(userdto.getPassword()));
+		user.setRoles(Collections.singleton(Role.USER));
+		user.setEnabled(true);
+		user.setEmailVerified(false);
+
+		user = userRepo.save(user);
+
+		// 3. Generate verification token
 		String token = UUID.randomUUID().toString();
-		com.kitchome.auth.entity.VerificationToken verificationToken = new com.kitchome.auth.entity.VerificationToken(
-				user, token);
-		verificationTokenRepository.save(verificationToken);
+		VerificationToken myToken = new VerificationToken(user, token);
+		tokenRepository.save(myToken);
 
-		// Send real email
+		// 4. Send verification email async
 		emailService.sendVerificationEmail(user.getEmail(), token);
 
 		return true;
 	}
 
-	public void verifyEmail(String token) {
-		com.kitchome.auth.entity.VerificationToken verificationToken = verificationTokenRepository.findByToken(token)
+	public void verifyUser(String token) {
+		VerificationToken vToken = tokenRepository.findByToken(token)
 				.orElseThrow(() -> new com.kitchome.auth.Exception.AuthException(ErrorCode.TOKEN_NOT_FOUND,
 						"Invalid verification token"));
 
-		if (verificationToken.getExpiryDate().isBefore(java.time.LocalDateTime.now())) {
+		if (vToken.getExpiryDate().isBefore(java.time.LocalDateTime.now())) {
 			throw new com.kitchome.auth.Exception.AuthException(ErrorCode.TOKEN_EXPIRED, "Verification token expired");
 		}
 
-		User user = verificationToken.getUser();
+		User user = vToken.getUser();
 		user.setEnabled(true);
+		user.setEmailVerified(true);
 		userRepo.save(user);
+		tokenRepository.delete(vToken);
+	}
 
-		verificationTokenRepository.delete(verificationToken);
+	public void resendVerificationLink(String email) {
+		User user = userRepo.findByEmailIgnoreCase(email)
+				.map(proj -> {
+					User u = new User();
+					u.setId(proj.getId());
+					u.setEmail(proj.getEmail());
+					u.setEnabled(proj.isEnabled());
+					// This is a bit awkward with projections, maybe fetch real user
+					return userRepo.findById(proj.getId()).get();
+				})
+				.orElseThrow(() -> new com.kitchome.auth.Exception.AuthException(ErrorCode.VALIDATION_ERROR,
+						"User not found"));
+
+		if (user.isEnabled() && user.isEmailVerified()) {
+			throw new com.kitchome.auth.Exception.AuthException(ErrorCode.VALIDATION_ERROR,
+					"Account is already verified");
+		}
+
+		// Delete old token if exists
+		tokenRepository.findByUser(user).ifPresent(tokenRepository::delete);
+
+		String newToken = UUID.randomUUID().toString();
+		VerificationToken myToken = new VerificationToken(user, newToken);
+		tokenRepository.save(myToken);
+
+		emailService.sendVerificationEmail(user.getEmail(), newToken);
 	}
 
 	public void updatePassword(User user, String newPassword) {

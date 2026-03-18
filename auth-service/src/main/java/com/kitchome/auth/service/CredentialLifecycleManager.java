@@ -29,6 +29,10 @@ public class CredentialLifecycleManager {
         this.providers = providers;
     }
 
+    public List<CredentialProvider> getProviders() {
+        return providers;
+    }
+
     public Mono<CredentialObject> getValidCredential(String userId, String providerId) {
         String path = String.format(pathFormat, userId, providerId);
 

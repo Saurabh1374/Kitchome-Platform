@@ -42,6 +42,9 @@ public class User extends BaseEntity {
     @Column(name = "enabled")
     private boolean enabled = false;
 
+    @Column(name = "email_verified")
+    private boolean emailVerified = false;
+
     @Column(name = "password_last_updated")
     private java.time.LocalDateTime passwordLastUpdated;
 

@@ -10,9 +10,16 @@ import com.kitchome.auth.integration.CredentialProvider;
 import com.kitchome.auth.model.CredentialObject;
 import com.kitchome.auth.model.CredentialType;
 
+import com.kitchome.auth.payload.IntegrationInfoDTO;
+import com.kitchome.auth.entity.User;
+import com.kitchome.auth.entity.IntegrationMetadata;
+import com.kitchome.auth.dao.IntegrationMetadataRepository;
+import com.kitchome.auth.dao.UserRepositoryDao;
 import java.time.Instant;
 import java.util.Map;
 import java.util.HashMap;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -20,8 +27,8 @@ import java.util.HashMap;
 public class ThirdPartyIntegrationService {
 
     private final CredentialLifecycleManager credentialLifecycleManager;
-    private final com.kitchome.auth.dao.IntegrationMetadataRepository integrationMetadataRepository;
-    private final com.kitchome.auth.dao.UserRepositoryDao userRepository;
+    private final IntegrationMetadataRepository integrationMetadataRepository;
+    private final UserRepositoryDao userRepository;
     private final JwtUtil jwtUtil;
 
     /**
@@ -55,7 +62,7 @@ public class ThirdPartyIntegrationService {
 
                             // Save metadata if not already present
                             if (integrationMetadataRepository.findByServiceNameAndUser(serviceName, user).isEmpty()) {
-                                com.kitchome.auth.entity.IntegrationMetadata metadata = com.kitchome.auth.entity.IntegrationMetadata
+                                IntegrationMetadata metadata = IntegrationMetadata
                                         .builder()
                                         .serviceName(serviceName)
                                         // Path is managed dynamically by LifecycleManager now, we store symbolic providerId
@@ -98,5 +105,28 @@ public class ThirdPartyIntegrationService {
         String redirectUri = String.format("http://localhost:8080/api/v1/auth/integrations/%s/callback", serviceName);
         CredentialProvider provider = credentialLifecycleManager.findProvider(serviceName);
         return provider.getAuthorizationUrl(state, redirectUri);
+    }
+
+    /**
+     * Get a list of all available integrations and whether they are connected for the user.
+     */
+    public List<IntegrationInfoDTO> getAvailableIntegrations(String username) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        List<String> connectedServices = integrationMetadataRepository.findByUser(user).stream()
+                .map(IntegrationMetadata::getServiceName)
+                .collect(Collectors.toList());
+
+        return credentialLifecycleManager.getProviders().stream()
+                .filter(p -> !(p instanceof com.kitchome.auth.integration.provider.BearerTokenProvider)) // Filter out internal providers if any
+                .map(provider -> IntegrationInfoDTO.builder()
+                        .name(provider.getProviderId())
+                        .displayName(provider.getDisplayName())
+                        .description(provider.getDescription())
+                        .iconUrl(provider.getIconUrl())
+                        .connected(connectedServices.contains(provider.getProviderId()))
+                        .build())
+                .collect(Collectors.toList());
     }
 }

@@ -76,6 +76,7 @@ public class SecurityConfig {
 	private final AuthenticationEntryPoint authenticationEntryPoint;
 	private final PasswordEncoder passwordEncoder;
 	private final com.kitchome.auth.dao.UserRepositoryDao userRepositoryDao;
+	private final com.kitchome.auth.service.AuthenticationService authService;
 
 	@Bean
 	public SecurityFilterChain securityHttpConfig(HttpSecurity http) throws Exception {
@@ -86,7 +87,7 @@ public class SecurityConfig {
 						authz -> authz
 								// Allowed public endpoints (New + Legacy)
 								.requestMatchers("/api/v1/auth/**", "/login", "/register", "/static/**", "/error",
-										"/invalidSession", "/", "/dashboard")
+										"/invalidSession", "/", "/verify-email", "/resend-verification")
 								.permitAll()
 								.requestMatchers("/api/v1/public", "/api/v1/users/register", "/api/v1/users/login",
 										"/api/v1/users/refresh")
@@ -109,10 +110,9 @@ public class SecurityConfig {
 						.userInfoEndpoint(
 								userInfo -> userInfo.userService(new CustomOAuth2UserService(userRepositoryDao)))
 						.successHandler((request, response, authentication) -> {
-							String username = authentication.getName();
-							String token = jwtUtil.generateToken(username);
-							// Redirect to dashboard with token (or set as cookie if preferred)
-							response.sendRedirect("http://localhost:5173/dashboard?token=" + token);
+							authService.finalizeLogin(request, response, authentication);
+							// Redirect to dashboard (tokens are now in HttpOnly cookies!)
+							response.sendRedirect("/dashboard");
 						}))
 				.exceptionHandling(ex -> ex
 						.accessDeniedHandler(customAccessDeniedHandler)
@@ -189,7 +189,8 @@ public class SecurityConfig {
 	public org.springframework.web.cors.CorsConfigurationSource corsConfigurationSource() {
 		org.springframework.web.cors.CorsConfiguration configuration = new org.springframework.web.cors.CorsConfiguration();
 		// Allow specific origins (adjust as needed for production)
-		configuration.setAllowedOrigins(java.util.Arrays.asList("http://localhost:5173", "http://localhost:3000"));
+		configuration.setAllowedOrigins(
+				java.util.Arrays.asList("http://localhost:5173", "http://localhost:3000", "http://localhost:8080"));
 		// Allow all methods
 		configuration.setAllowedMethods(java.util.Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
 		// Allow all headers

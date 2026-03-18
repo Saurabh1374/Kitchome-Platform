@@ -1,88 +1,116 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head('Register')}"></head>
+<body style="display: flex; flex-direction: column; min-height: 100vh;">
+    <nav th:replace="~{fragments :: navbar}"></nav>
 
-<head>
-    <title>Registration</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- Link the shared CSS -->
-    <link rel="stylesheet" th:href="@{/css/auth.css}" />
-</head>
+    <main style="flex: 1; display: flex; align-items: center; justify-content: center; padding: 2rem;">
+        <div class="glass animate-slide-up" style="width: 100%; max-width: 480px; padding: 3rem; border-radius: 28px; box-shadow: var(--shadow-xl);">
+            <div style="text-align: center; margin-bottom: 2.5rem;">
+                <h2 style="font-size: 2rem; font-weight: 700; margin-bottom: 0.5rem;" class="text-gradient">Create Account</h2>
+                <p style="color: var(--text-muted);">Join KitChome to secure your data.</p>
+            </div>
 
-<body>
-    <div class="auth-container">
-        <div class="auth-header">
-            <h2>Register</h2>
+            <div id="error-msg" class="glass" style="display: none; padding: 1rem; border-radius: 12px; background: rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.2); color: var(--danger); margin-bottom: 1.5rem; font-size: 0.875rem; text-align: center;"></div>
+            <div id="success-msg" class="glass" style="display: none; padding: 1rem; border-radius: 12px; background: rgba(16, 185, 129, 0.1); border-color: rgba(16, 185, 129, 0.2); color: var(--success); margin-bottom: 1.5rem; font-size: 0.875rem; text-align: center;"></div>
+
+            <form id="registerForm">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div class="input-group">
+                        <label class="input-label" for="username">Username</label>
+                        <input class="auth-input" type="text" id="username" name="username" placeholder="johndoe" required />
+                    </div>
+                    <div class="input-group">
+                        <label class="input-label" for="email">Email</label>
+                        <input class="auth-input" type="email" id="email" name="email" placeholder="john@example.com" required />
+                    </div>
+                </div>
+                
+                <div class="input-group">
+                    <label class="input-label" for="password">Password</label>
+                    <input class="auth-input" type="password" id="password" name="password" placeholder="••••••••" required />
+                </div>
+                
+                <div class="input-group" style="margin-bottom: 2rem;">
+                    <label class="input-label" for="confirmPassword">Confirm Password</label>
+                    <input class="auth-input" type="password" id="confirmPassword" name="confirmPassword" placeholder="••••••••" required />
+                </div>
+
+                <button class="btn btn-primary" type="submit" style="width: 100%; padding: 1rem;">Create Account</button>
+            </form>
+
+            <div style="text-align: center; margin-top: 2rem;">
+                <p style="color: var(--text-muted); font-size: 0.875rem;">
+                    Already have an account? 
+                    <a href="/login" style="color: var(--primary-light); text-decoration: none; font-weight: 600;">Sign in</a>
+                </p>
+            </div>
         </div>
+    </main>
 
-        <div id="error-msg" class="error-message"></div>
-        <div id="success-msg" class="success-message"></div>
-
-        <form id="registerForm" class="auth-form">
-            <div class="form-group">
-                <input class="auth-input" type="text" id="username" placeholder="Username" required />
-            </div>
-            <div class="form-group">
-                <input class="auth-input" type="email" id="email" placeholder="Email Address" required />
-            </div>
-            <div class="form-group">
-                <input class="auth-input" type="password" id="password" placeholder="Password" required />
-            </div>
-            <button class="auth-btn" type="submit">Create Account</button>
-        </form>
-
-        <div class="auth-links">
-            <a href="/login" class="auth-link">Already have an account? Login</a>
-        </div>
-    </div>
+    <footer th:replace="~{fragments :: footer}"></footer>
 
     <script>
-        document.getElementById('registerForm').addEventListener('submit', async function (event) {
-            event.preventDefault();
-
+        document.addEventListener("DOMContentLoaded", function () {
+            const registerForm = document.getElementById("registerForm");
             const errorMsg = document.getElementById("error-msg");
             const successMsg = document.getElementById("success-msg");
-            errorMsg.style.display = "none";
-            successMsg.style.display = "none";
 
-            const payload = {
-                username: document.getElementById('username').value,
-                email: document.getElementById('email').value,
-                password: document.getElementById('password').value
-            };
+            registerForm.addEventListener("submit", async function (event) {
+                event.preventDefault();
+                errorMsg.style.display = "none";
+                successMsg.style.display = "none";
 
-            try {
-                const response = await fetch('/api/v1/auth/register', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(payload)
-                });
+                const password = document.getElementById("password").value;
+                const confirmPassword = document.getElementById("confirmPassword").value;
 
-                if (response.ok) {
-                    successMsg.innerText = "Registration successful! Redirecting to login...";
-                    successMsg.style.display = "block";
-                    setTimeout(() => {
-                        window.location.href = '/login';
-                    }, 2000);
-                } else {
-                    const data = await response.json();
-                    let msg = "Registration failed";
-                    if (data.message) msg = data.message;
-                    // Handle validation errors if they come as a map
-                    if (data.validationError) {
-                        msg = Object.values(data.validationError).join(", ");
-                    }
-                    errorMsg.innerText = msg;
+                if (password !== confirmPassword) {
+                    errorMsg.innerText = "Passwords do not match.";
                     errorMsg.style.display = "block";
+                    return;
                 }
-            } catch (error) {
-                console.error("Registration error:", error);
-                errorMsg.innerText = "Network error or server unreachable";
-                errorMsg.style.display = "block";
-            }
+
+                const submitBtn = registerForm.querySelector('button[type="submit"]');
+                const originalText = submitBtn.innerText;
+                submitBtn.innerText = "Creating account...";
+                submitBtn.disabled = true;
+
+                const payload = {
+                    username: document.getElementById("username").value,
+                    email: document.getElementById("email").value,
+                    password: password
+                };
+
+                try {
+                    const response = await fetch("/api/v1/auth/register", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(payload)
+                    });
+
+                    const data = await response.json();
+
+                    if (response.ok) {
+                        successMsg.innerText = "Registration successful! Redirecting to verify email...";
+                        successMsg.style.display = "block";
+                        registerForm.style.display = "none";
+                        setTimeout(() => {
+                            window.location.href = "/verify-email";
+                        }, 2000);
+                    } else {
+                        errorMsg.innerText = data.message || "Registration failed. Email or username might be taken.";
+                        errorMsg.style.display = "block";
+                        submitBtn.innerText = originalText;
+                        submitBtn.disabled = false;
+                    }
+                } catch (error) {
+                    errorMsg.innerText = "Connection error. Please try again later.";
+                    errorMsg.style.display = "block";
+                    submitBtn.innerText = originalText;
+                    submitBtn.disabled = false;
+                }
+            });
         });
     </script>
 </body>
-
 </html>

@@ -46,6 +46,8 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
             if (user.getProvider() == null) {
                 user.setProvider(provider);
                 user.setProviderId(providerId);
+                user.setEmailVerified(true);
+                user.setEnabled(true);
                 user = userRepository.save(user);
             }
         } else {
@@ -56,6 +58,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
             user.setProvider(provider);
             user.setProviderId(providerId);
             user.setEnabled(true); // Social logins are auto-verified
+            user.setEmailVerified(true);
             user.setRoles(Set.of(Role.USER));
             user = userRepository.save(user);
             log.info("Created new user via OAuth2 for email: {}", email);
