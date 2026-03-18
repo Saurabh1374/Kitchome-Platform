@@ -24,6 +24,7 @@ public class CustomUserDetails implements UserDetails, OAuth2User {
 	private final String password;
 	private final Collection<GrantedAuthority> authorities;
 	private final boolean enabled;
+	private final boolean emailVerified;
 	private final Map<String, Object> attributes;
 
 	public CustomUserDetails(UserCredProjection user) {
@@ -44,6 +45,7 @@ public class CustomUserDetails implements UserDetails, OAuth2User {
 
 		this.authorities = auths;
 		this.enabled = user.isEnabled();
+		this.emailVerified = user.isEmailVerified();
 		this.attributes = null;
 	}
 
@@ -62,6 +64,7 @@ public class CustomUserDetails implements UserDetails, OAuth2User {
 		}
 
 		this.enabled = true;
+		this.emailVerified = true;
 		this.attributes = attributes;
 	}
 
@@ -86,6 +89,10 @@ public class CustomUserDetails implements UserDetails, OAuth2User {
 
 	public String getEmail() {
 		return email;
+	}
+
+	public boolean isEmailVerified() {
+		return emailVerified;
 	}
 
 	@Override

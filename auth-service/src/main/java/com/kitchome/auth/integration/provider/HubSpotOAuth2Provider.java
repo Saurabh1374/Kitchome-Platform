@@ -26,6 +26,21 @@ public class HubSpotOAuth2Provider extends GenericOAuth2Provider {
     }
 
     @Override
+    public String getDisplayName() {
+        return "HubSpot";
+    }
+
+    @Override
+    public String getDescription() {
+        return "Sync your contacts and deals with HubSpot CRM.";
+    }
+
+    @Override
+    public String getIconUrl() {
+        return "https://cdn-icons-png.flaticon.com/512/732/732213.png"; // HubSpot icon
+    }
+
+    @Override
     protected String getClientId() {
         return clientId;
     }

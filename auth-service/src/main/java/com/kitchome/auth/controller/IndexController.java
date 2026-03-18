@@ -10,8 +10,8 @@ public class IndexController {
 	@GetMapping("/")
 	public String index(Model model) {
 		
-		model.addAttribute("loginLink", "api/v1/users/login");
-		model.addAttribute("registerLink", "api/v1/users/register");
+		model.addAttribute("loginLink", "/login");
+		model.addAttribute("registerLink", "/register");
 
 		return "Index"; // Name of the Thymeleaf template (welcome.html)
 	}

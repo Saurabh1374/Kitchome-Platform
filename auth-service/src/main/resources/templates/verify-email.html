@@ -1,66 +1,82 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head('Verify Email')}"></head>
+<body style="display: flex; flex-direction: column; min-height: 100vh;">
+    <nav th:replace="~{fragments :: navbar}"></nav>
 
-<head>
-    <title>Email Verification</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" th:href="@{/css/auth.css}" />
-</head>
+    <main style="flex: 1; display: flex; align-items: center; justify-content: center; padding: 2rem;">
+        <div class="glass animate-slide-up" style="width: 100%; max-width: 480px; padding: 3rem; border-radius: 28px; box-shadow: var(--shadow-xl); text-align: center;">
+            <div style="width: 64px; height: 64px; background: rgba(99, 102, 241, 0.1); border-radius: 20px; display: flex; align-items: center; justify-content: center; margin: 0 auto 2rem; color: var(--primary-light);">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 17.0022C22 18.1068 21.1044 19.0022 20 19.0022H4C2.89543 19.0022 2 18.1068 2 17.0022V7.00224C2 5.89767 2.89543 5.00224 4 5.00224H20C21.1044 5.00224 22 5.89767 22 7.00224V17.0022Z"/><path d="M2 7L12 14L22 7"/></svg>
+            </div>
+            
+            <h2 style="font-size: 2rem; font-weight: 700; margin-bottom: 1rem;" class="text-gradient">Check Your Email</h2>
+            <p style="color: var(--text-muted); line-height: 1.6; margin-bottom: 2.5rem;">
+                We've sent a verification link to your email address. Please click the link to activate your account.
+            </p>
 
-<body>
-    <div class="auth-container">
-        <div class="auth-header">
-            <h2>Email Verification</h2>
+            <div style="padding: 1.5rem; border-radius: 16px; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--glass-border); margin-bottom: 2rem;">
+                <p style="font-size: 0.875rem; color: var(--text-dim);">Didn't receive the email?</p>
+                <div id="resend-msg" style="display: none; margin-top: 1rem; font-size: 0.875rem;"></div>
+                <button id="resend-btn" class="btn btn-outline" style="margin-top: 1rem; width: 100%;">Resend Link</button>
+            </div>
+
+            <a href="/login" style="color: var(--primary-light); text-decoration: none; font-weight: 600; font-size: 0.875rem;">Return to Login</a>
         </div>
+    </main>
 
-        <div id="status-message" style="text-align: center; margin-bottom: 1rem;">
-            Verifying your email...
-        </div>
+    <footer th:replace="~{fragments :: footer}"></footer>
 
-        <div class="auth-links">
-            <a href="/login" class="auth-link" id="login-link" style="display: none;">Go to Login</a>
-        </div>
-    </div>
+    <script th:inline="javascript">
+        document.addEventListener("DOMContentLoaded", function () {
+            const resendBtn = document.getElementById("resend-btn");
+            const resendMsg = document.getElementById("resend-msg");
+            const email = /*[[${email}]]*/ null;
 
-    <script>
-        document.addEventListener("DOMContentLoaded", async function () {
-            const urlParams = new URLSearchParams(window.location.search);
-            const token = urlParams.get('token');
-            const statusMessage = document.getElementById("status-message");
-            const loginLink = document.getElementById("login-link");
+            if (resendBtn) {
+                resendBtn.addEventListener("click", async function () {
+                    resendMsg.style.display = "none";
+                    resendBtn.disabled = true;
+                    const originalText = resendBtn.innerText;
+                    resendBtn.innerText = "Sending...";
 
-            if (!token) {
-                statusMessage.innerText = "Invalid verification link. Missing token.";
-                statusMessage.className = "error-message";
-                statusMessage.style.display = "block";
-                return;
-            }
+                    try {
+                        const response = await fetch("/api/v1/auth/resend-verification", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ email: email })
+                        });
 
-            try {
-                const response = await fetch(`/api/v1/auth/verify-email?token=${token}`, {
-                    method: 'GET'
+                        const data = await response.json();
+                        resendMsg.innerText = data.message;
+                        resendMsg.style.color = response.ok ? "var(--success)" : "var(--danger)";
+                        resendMsg.style.display = "block";
+
+                        if (response.ok) {
+                            let countdown = 60;
+                            const timer = setInterval(() => {
+                                countdown--;
+                                resendBtn.innerText = `Resend in ${countdown}s`;
+                                if (countdown <= 0) {
+                                    clearInterval(timer);
+                                    resendBtn.disabled = false;
+                                    resendBtn.innerText = originalText;
+                                }
+                            }, 1000);
+                        } else {
+                            resendBtn.disabled = false;
+                            resendBtn.innerText = originalText;
+                        }
+                    } catch (error) {
+                        resendMsg.innerText = "Connection error. Please try again.";
+                        resendMsg.style.color = "var(--danger)";
+                        resendMsg.style.display = "block";
+                        resendBtn.disabled = false;
+                        resendBtn.innerText = originalText;
+                    }
                 });
-
-                if (response.ok) {
-                    const text = await response.text();
-                    statusMessage.innerText = text || "Email verified successfully!";
-                    statusMessage.className = "success-message";
-                    statusMessage.style.display = "block";
-                    loginLink.style.display = "inline";
-                } else {
-                    const text = await response.text();
-                    statusMessage.innerText = text || "Verification failed. The token may be invalid or expired.";
-                    statusMessage.className = "error-message";
-                    statusMessage.style.display = "block";
-                }
-            } catch (error) {
-                console.error("Verification error:", error);
-                statusMessage.innerText = "Network error or server unreachable.";
-                statusMessage.className = "error-message";
-                statusMessage.style.display = "block";
             }
         });
     </script>
 </body>
-
 </html>

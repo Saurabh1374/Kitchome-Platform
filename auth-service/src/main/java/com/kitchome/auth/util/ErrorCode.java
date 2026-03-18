@@ -8,7 +8,8 @@ public enum ErrorCode {
 	INTERNAL_SERVER_ERROR("KIC-12000", HttpStatus.INTERNAL_SERVER_ERROR),
 	SUSPESIOUS("KIC-11111", HttpStatus.BAD_REQUEST),
 	TOKEN_NOT_FOUND("KIC-110404", HttpStatus.BAD_REQUEST),
-	TOKEN_EXPIRED("KIC-110410", HttpStatus.GONE);
+	TOKEN_EXPIRED("KIC-110410", HttpStatus.GONE),
+	UNAUTHORIZED_ACCESS("KIC-10401", HttpStatus.UNAUTHORIZED);
 
 	private String ErrorCode;
 	private HttpStatus httpStatus;

@@ -23,6 +23,21 @@ public class GoogleCalendarOAuth2Provider extends GenericOAuth2Provider {
     }
 
     @Override
+    public String getDisplayName() {
+        return "Google Calendar";
+    }
+
+    @Override
+    public String getDescription() {
+        return "Manage your schedule and events with Google Calendar.";
+    }
+
+    @Override
+    public String getIconUrl() {
+        return "/500px-Google_Calendar_icon_(2020).svg.png"; // Local icon
+    }
+
+    @Override
     protected String getClientId() {
         return clientId;
     }

@@ -10,7 +10,7 @@ import reactor.core.scheduler.Schedulers;
 
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.Semaphore;
 
 @Slf4j
 @Service
@@ -22,11 +22,15 @@ public class CredentialLifecycleManager {
     @Value("${app.credentials.path-format:secret/users/%s/%s}")
     private String pathFormat;
 
-    private final ConcurrentHashMap<String, ReentrantLock> refreshLocks = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, Semaphore> refreshLocks = new ConcurrentHashMap<>();
 
     public CredentialLifecycleManager(CredentialStorage credentialStorage, List<CredentialProvider> providers) {
         this.credentialStorage = credentialStorage;
         this.providers = providers;
+    }
+
+    public List<CredentialProvider> getProviders() {
+        return providers;
     }
 
     public Mono<CredentialObject> getValidCredential(String userId, String providerId) {
@@ -43,13 +47,18 @@ public class CredentialLifecycleManager {
                     if (provider.shouldRefresh(credential)) {
                         log.info("Credential for {} needs refresh. Attempting refresh asynchronously.", providerId);
                         
-                        // We use a ReentrantLock mapped by path to ensure thread safety
+                        // We use a Semaphore(1) mapped by path to ensure thread safety
                         // preventing concurrent token refreshes that could invalidate tokens.
-                        ReentrantLock lock = refreshLocks.computeIfAbsent(path, k -> new ReentrantLock());
+                        Semaphore lock = refreshLocks.computeIfAbsent(path, k -> new Semaphore(1));
                         
                         return Mono.using(
                                 () -> {
-                                    lock.lock();
+                                    try {
+                                        lock.acquire();
+                                    } catch (InterruptedException e) {
+                                        Thread.currentThread().interrupt();
+                                        throw new RuntimeException(e);
+                                    }
                                     return lock;
                                 },
                                 l -> provider.refresh(credential)
@@ -58,7 +67,7 @@ public class CredentialLifecycleManager {
                                                 .subscribeOn(Schedulers.boundedElastic())
                                                 .thenReturn(updatedCred)
                                         ),
-                                ReentrantLock::unlock
+                                Semaphore::release
                         ).subscribeOn(Schedulers.boundedElastic());
                     }
 

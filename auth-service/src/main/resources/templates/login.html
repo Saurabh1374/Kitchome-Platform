@@ -1,45 +1,126 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head('Login')}"></head>
+<body style="display: flex; flex-direction: column; min-height: 100vh;">
+    <nav th:replace="~{fragments :: navbar}"></nav>
 
-<head>
-    <title>Login</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- Link the shared CSS -->
-    <link rel="stylesheet" th:href="@{/css/auth.css}" />
-</head>
+    <main style="flex: 1; display: flex; align-items: center; justify-content: center; padding: 2rem; width: 100%;">
+        <div class="glass animate-slide-up" style="width: 100%; max-width: 1000px; display: flex; border-radius: 28px; box-shadow: var(--shadow-xl); overflow: hidden; padding: 0; border: 1px solid rgba(255,255,255,0.08);">
+            
+            <!-- Left Pane: Branding & Purpose -->
+            <div style="flex: 1; background: linear-gradient(135deg, var(--primary), var(--secondary)); position: relative; overflow: hidden; display: none; padding: 4rem; color: white;" class="auth-left-pane">
+                <div style="position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: radial-gradient(circle, rgba(255,255,255,0.15) 0%, transparent 60%);"></div>
+                
+                <!-- Floating Hero Image -->
+                <div style="position: absolute; right: -5%; bottom: 5%; width: 70%; display: flex; justify-content: flex-end; z-index: 0;">
+                    <img src="/auth-hero-1.png" class="floating-hero" alt="Authentication Hero Illustration" style="max-width: 100%; object-fit: contain;">
+                </div>
 
-<body>
-    <div class="auth-container">
-        <div class="auth-header">
-            <h2>Login</h2>
-        </div>
+                <div style="position: relative; z-index: 1; height: 100%; display: flex; flex-direction: column; justify-content: space-between;">
+                    <div>
+                        <div style="background: rgba(255,255,255,0.2); width: fit-content; padding: 12px; border-radius: 16px; margin-bottom: 2rem; border: 1px solid rgba(255,255,255,0.3); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center;">
+                            <img src="/spring-logo.png" style="width: 32px; height: 32px; object-fit: contain; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));" alt="KitChome Logo">
+                        </div>
+                        <h2 style="font-size: 3rem; font-weight: 800; line-height: 1.1; margin-bottom: 1.5rem; letter-spacing: -0.02em; position: relative; z-index: 2;">Secure your<br/>digital life.</h2>
+                        <p style="font-size: 1.1rem; color: rgba(255, 255, 255, 0.85); line-height: 1.6; max-width: 90%;">KitChome provides enterprise-grade authentication, keeping your data locked down and your workflow seamless.</p>
+                    </div>
 
-        <div id="error-msg" class="error-message"></div>
-
-        <form id="loginForm" class="auth-form">
-            <div class="form-group">
-                <input class="auth-input" type="text" id="username" name="username" placeholder="Username" required />
+                    <div style="display: flex; align-items: center; gap: 1rem; background: rgba(0,0,0,0.15); padding: 1rem 1.5rem; border-radius: 16px; backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); width: fit-content;">
+                        <div style="display: flex;">
+                            <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--primary-light); border: 2px solid var(--primary); margin-right: -10px;"></div>
+                            <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--secondary-light); border: 2px solid var(--primary); margin-right: -10px;"></div>
+                            <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--success); border: 2px solid var(--primary);"></div>
+                        </div>
+                        <span style="font-size: 0.875rem; font-weight: 600; color: rgba(255,255,255,0.9);">Trusted by 10k+ users</span>
+                    </div>
+                </div>
             </div>
-            <div class="form-group">
-                <input class="auth-input" type="password" id="password" name="password" placeholder="Password"
-                    required />
-            </div>
-            <button class="auth-btn" type="submit">Login</button>
-        </form>
 
-        <div class="auth-links">
-            <a href="/register" class="auth-link">Create new account</a>
-            <a href="/forgot-password" class="auth-link">Forgot Password?</a>
+            <!-- Right Pane: Login Form -->
+            <div style="flex: 1; padding: 3rem; display: flex; flex-direction: column; justify-content: center; background: rgba(15, 23, 42, 0.6);" class="auth-right-pane">
+                <div style="margin-bottom: 2.5rem;">
+                    <h2 style="font-size: 2rem; font-weight: 700; margin-bottom: 0.5rem;" class="text-gradient">Welcome Back</h2>
+                    <p style="color: var(--text-muted); font-size: 0.95rem;">Please enter your details to sign in.</p>
+                </div>
+
+                <div id="error-msg" class="glass" style="display: none; padding: 1rem; border-radius: 12px; background: rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.2); color: var(--danger); margin-bottom: 1.5rem; font-size: 0.875rem; text-align: center;"></div>
+
+                <form id="loginForm">
+                    <div class="input-group">
+                        <label class="input-label" for="username">Username</label>
+                        <input class="auth-input hover-input" type="text" id="username" name="username" placeholder="johndoe" required />
+                    </div>
+                    <div class="input-group" style="margin-bottom: 1rem;">
+                        <label class="input-label" for="password">Password</label>
+                        <input class="auth-input hover-input" type="password" id="password" name="password" placeholder="••••••••" required />
+                    </div>
+                    
+                    <div style="display: flex; justify-content: flex-end; margin-bottom: 2rem;">
+                        <a href="/forgot-password" class="hover-link" style="font-size: 0.875rem; color: var(--primary-light); text-decoration: none; font-weight: 600;">Forgot password?</a>
+                    </div>
+
+                    <button class="btn btn-primary" type="submit" style="width: 100%; padding: 1rem; font-size: 1rem;">Sign In</button>
+                    
+                    <div style="text-align: center; margin: 1.5rem 0; display: flex; align-items: center; gap: 1rem;">
+                        <div style="flex: 1; height: 1px; background: rgba(255,255,255,0.05);"></div>
+                        <span style="color: var(--text-dim); font-size: 0.875rem; font-weight: 500;">or continue with</span>
+                        <div style="flex: 1; height: 1px; background: rgba(255,255,255,0.05);"></div>
+                    </div>
+                    
+                    <a href="/oauth2/authorization/google" class="btn btn-outline hover-glow" style="width: 100%; gap: 0.75rem; padding: 1rem; font-size: 1rem; background: rgba(255,255,255,0.03); border-color: rgba(255,255,255,0.08);">
+                        <svg width="20" height="20" viewBox="0 0 24 24"><path fill="#EA4335" d="M24 12.27c0-.85-.07-1.53-.22-2.23H12v4.22h6.7c-.3 1.64-1.24 3.01-2.66 3.93v3.25h4.31c2.52-2.32 3.95-5.74 3.95-9.17z"/><path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-4.31-3.25c-1.19.8-2.71 1.28-4.33 1.28-3.33 0-6.16-2.26-7.17-5.32H1.2v3.3C3.21 21.03 7.31 24 12 24z"/><path fill="#FBBC05" d="M4.83 14.8c-.26-.8-.41-1.63-.41-2.5s.15-1.7.41-2.5V6.5H1.2a11.97 11.97 0 0 0 0 11l3.63-2.7z"/><path fill="#4285F4" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.43-3.43C17.93 1.19 15.22 0 12 0 7.31 0 3.21 2.97 1.2 6.5l3.63 2.7c1.01-3.06 3.84-5.32 7.17-5.32z"/></svg>
+                        Sign in with Google
+                    </a>
+                </form>
+
+                <div style="text-align: center; margin-top: 2.5rem;">
+                    <p style="color: var(--text-muted); font-size: 0.95rem;">
+                        Don't have an account? 
+                        <a href="/register" class="hover-link" style="color: var(--primary-light); text-decoration: none; font-weight: 700;">Sign up</a>
+                    </p>
+                </div>
+            </div>
         </div>
-    </div>
+    </main>
+
+    <style>
+        .auth-left-pane {
+            display: none !important;
+        }
+        @media (min-width: 860px) {
+            .auth-left-pane {
+                display: flex !important;
+            }
+            .auth-right-pane {
+                padding: 4rem 4rem !important;
+            }
+        }
+        .hover-glow { transition: all 0.2s; }
+        .hover-glow:hover {
+            box-shadow: 0 0 15px rgba(255,255,255,0.05);
+            background: rgba(255,255,255,0.06) !important;
+            border-color: rgba(255,255,255,0.15) !important;
+        }
+        .hover-link { transition: color 0.2s; }
+        .hover-link:hover { color: var(--secondary-light) !important; }
+        .hover-input { transition: all 0.2s; }
+        .hover-input:hover { background: rgba(255,255,255,0.07); }
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+            100% { transform: translateY(0px); }
+        }
+        .floating-hero {
+            animation: float 6s ease-in-out infinite;
+            filter: drop-shadow(0 25px 35px rgba(0,0,0,0.3));
+        }
+    </style>
+
+    <footer th:replace="~{fragments :: footer}"></footer>
 
     <script>
         document.addEventListener("DOMContentLoaded", function () {
-            const token = localStorage.getItem("accessToken");
-            if (token) {
-                // Optional: Check token validity before redirecting
-                window.location.href = "/dashboard";
-            }
+            // Auth state is now managed by cookies, backend will handle redirects for authenticated users accessing /login.
 
             const loginForm = document.getElementById("loginForm");
             const errorMsg = document.getElementById("error-msg");
@@ -47,7 +128,11 @@
             loginForm.addEventListener("submit", async function (event) {
                 event.preventDefault();
                 errorMsg.style.display = "none";
-                errorMsg.innerText = "";
+                
+                const submitBtn = loginForm.querySelector('button[type="submit"]');
+                const originalText = submitBtn.innerText;
+                submitBtn.innerText = "Signing in...";
+                submitBtn.disabled = true;
 
                 const payload = {
                     username: document.getElementById("username").value,
@@ -57,34 +142,32 @@
                 try {
                     const response = await fetch("/api/v1/auth/login", {
                         method: "POST",
-                        headers: {
-                            "Content-Type": "application/json"
-                        },
+                        headers: { "Content-Type": "application/json" },
                         body: JSON.stringify(payload)
                     });
 
                     const data = await response.json();
 
-                    if (response.ok && data.accessToken) {
-                        localStorage.setItem("accessToken", data.accessToken);
+                    if (response.ok) {
                         window.location.href = "/dashboard";
                     } else {
-                        // Attempt to extract error message
-                        let msg = "Login failed";
+                        let msg = "Authentication failed. Please check your credentials.";
                         if (response.status === 401) msg = "Invalid username or password";
                         else if (data.message) msg = data.message;
 
                         errorMsg.innerText = msg;
                         errorMsg.style.display = "block";
+                        submitBtn.innerText = originalText;
+                        submitBtn.disabled = false;
                     }
                 } catch (error) {
-                    console.error("Login error:", error);
-                    errorMsg.innerText = "Network error or server unreachable";
+                    errorMsg.innerText = "Connection error. Please try again later.";
                     errorMsg.style.display = "block";
+                    submitBtn.innerText = originalText;
+                    submitBtn.disabled = false;
                 }
             });
         });
     </script>
 </body>
-
 </html>

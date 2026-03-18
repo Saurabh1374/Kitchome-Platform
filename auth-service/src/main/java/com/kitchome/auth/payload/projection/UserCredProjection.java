@@ -17,4 +17,5 @@ public interface UserCredProjection {
     String getPassword();
     Set<RolesProjection> getRoles();
     boolean isEnabled();
+    boolean isEmailVerified();
 }

@@ -16,6 +16,27 @@ public interface CredentialProvider {
     String getProviderId();
 
     /**
+     * @return a human-readable name (e.g. "Google Calendar")
+     */
+    default String getDisplayName() {
+        return getProviderId();
+    }
+
+    /**
+     * @return a short description of what this integration does
+     */
+    default String getDescription() {
+        return "Connect to " + getDisplayName();
+    }
+
+    /**
+     * @return URL to the brand icon
+     */
+    default String getIconUrl() {
+        return "/static/images/integrations/default.png";
+    }
+
+    /**
      * @return a list of CredentialTypes supported by this provider
      */
     List<CredentialType> getSupportedTypes();

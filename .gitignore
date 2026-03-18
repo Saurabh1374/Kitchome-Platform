@@ -35,3 +35,6 @@ build/
 
 ### Custom ###
 logs/
+
+.agent/
+
