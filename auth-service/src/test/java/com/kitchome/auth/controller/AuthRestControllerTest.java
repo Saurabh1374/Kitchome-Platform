@@ -130,14 +130,18 @@ class AuthRestControllerTest {
 
     @Test
     void testRefreshTokenSuccess() {
+        // Do NOT send X-Device-Fingerprint header so the fallback (IP+UserAgent) is used,
+        // matching the strategy used at login time in AuthenticationService.generateFingerprint().
         request.setCookies(new jakarta.servlet.http.Cookie("refreshToken", "rtoken"));
-        request.addHeader("X-Device-Fingerprint", "fp");
         request.setRemoteAddr("127.0.0.1");
         request.addHeader("User-Agent", "agent");
 
+        // Compute the expected fingerprint the same way getFingerprint() fallback does
+        String expectedFp = java.util.UUID.nameUUIDFromBytes(("agent" + "127.0.0.1").getBytes()).toString();
+
         RefreshToken token = new RefreshToken();
-        token.setFingerprint("unknown");
-        token.setIp(request.getRemoteAddr());
+        token.setFingerprint(expectedFp);
+        token.setIp("127.0.0.1");
         User user = new User();
         user.setUsername("user");
         token.setUser(user);
@@ -147,20 +151,12 @@ class AuthRestControllerTest {
 
         RefreshToken newRefresh = new RefreshToken();
         newRefresh.setToken("newRefresh");
-        when(refreshTokenService.generateAndStoreRefreshToken("user", "unknown", "127.0.0.1", "agent")).thenReturn(newRefresh);
+        when(refreshTokenService.generateAndStoreRefreshToken("user", expectedFp, "127.0.0.1", "agent")).thenReturn(newRefresh);
 
-        try {
-            ResponseEntity<ApiResponse<JwtResponseDTO>> res = controller.refreshToken(request, response);
-            assertEquals(HttpStatus.OK, res.getStatusCode());
-            assertTrue(res.getHeaders().containsKey(HttpHeaders.AUTHORIZATION));
-            verify(refreshTokenService).invalidate(token);
-        } catch (AuthException e) {
-            System.out.println("SUSPESIOUS EXCEPTION: FP=" + request.getHeader("X-Device-Fingerprint") + 
-                ", IP=" + request.getRemoteAddr() + 
-                ", Token FP=" + token.getFingerprint() + 
-                ", Token IP=" + token.getIp());
-            throw e;
-        }
+        ResponseEntity<ApiResponse<JwtResponseDTO>> res = controller.refreshToken(request, response);
+        assertEquals(HttpStatus.OK, res.getStatusCode());
+        assertTrue(res.getHeaders().containsKey(HttpHeaders.AUTHORIZATION));
+        verify(refreshTokenService).invalidate(token);
     }
 
     @Test
@@ -213,7 +209,7 @@ class AuthRestControllerTest {
     void testVerifyEmailSuccess() {
         ResponseEntity<?> res = controller.verifyEmail("token");
         assertEquals(HttpStatus.FOUND, res.getStatusCode());
-        assertEquals("http://localhost:5173/login?verified=true", res.getHeaders().getLocation().toString());
+        assertEquals("/login?verified=true", res.getHeaders().getLocation().toString());
     }
 
     @Test
@@ -221,7 +217,7 @@ class AuthRestControllerTest {
         doThrow(new AuthException(ErrorCode.TOKEN_NOT_FOUND)).when(userService).verifyUser("token");
         ResponseEntity<?> res = controller.verifyEmail("token");
         assertEquals(HttpStatus.FOUND, res.getStatusCode());
-        assertEquals("http://localhost:5173/login?alreadyVerified=true", res.getHeaders().getLocation().toString());
+        assertEquals("/login?alreadyVerified=true", res.getHeaders().getLocation().toString());
     }
 
     @Test

@@ -58,15 +58,29 @@ class JwtAuthenticationFilterTest {
 
     @Test
     void testShouldNotFilter_RefreshEndpoint() throws Exception {
+        // shouldNotFilter is protected — access it via reflection
+        java.lang.reflect.Method method = org.springframework.web.filter.OncePerRequestFilter.class
+                .getDeclaredMethod("shouldNotFilter", jakarta.servlet.http.HttpServletRequest.class);
+        method.setAccessible(true);
+
+        // POST /api/v1/users/refresh → should NOT filter (returns true)
         request.setServletPath("/api/v1/users/refresh");
         request.setMethod("POST");
-        // Verify protected method by reflection or public method exposed
-        // Since shouldNotFilter is protected, we can invoke it via a method reflection or just cast
-        // A direct way to test is to see that the whole filter returns early
-        // The best way to test a filter's shouldNotFilter is invoking it, but if it is protected we can't cleanly,
-        // Wait, OncePerRequestFilter exposes shouldNotFilter recursively internally but it's protected
-        // We can test by extending it or using reflection. It's safe to just skip testing it directly 
-        // if doFilter triggers it. But doFilter calls shouldNotFilter internally in Spring.
+        assertTrue((boolean) method.invoke(filter, request));
+
+        // POST /api/v1/auth/refresh → should NOT filter (returns true)
+        request.setServletPath("/api/v1/auth/refresh");
+        assertTrue((boolean) method.invoke(filter, request));
+
+        // GET /api/v1/users/refresh → should filter (wrong method, returns false)
+        request.setServletPath("/api/v1/users/refresh");
+        request.setMethod("GET");
+        assertFalse((boolean) method.invoke(filter, request));
+
+        // POST /api/v1/auth/login → should filter (different path, returns false)
+        request.setServletPath("/api/v1/auth/login");
+        request.setMethod("POST");
+        assertFalse((boolean) method.invoke(filter, request));
     }
 
     @Test
@@ -82,7 +96,7 @@ class JwtAuthenticationFilterTest {
 
     @Test
     void testDoFilterInternal_TokenInCookie_Valid() throws Exception {
-        request.setCookies(new Cookie("jwt", "valid.token.string"));
+        request.setCookies(new Cookie("kitchome_access", "valid.token.string"));
         request.setServletPath("/api/v1/test");
 
         when(jwtUtil.extractUsername("valid.token.string")).thenReturn("testuser");
@@ -202,18 +216,64 @@ class JwtAuthenticationFilterTest {
 
     @Test
     void testDoFilterInternal_UsernameNotFound() throws Exception {
-        request.setParameter("jwt", "token");
+        // Send JWT via cookie so the filter finds and then clears it on UsernameNotFoundException
+        request.setCookies(new Cookie("kitchome_access", "token"));
+        request.setServletPath("/api/v1/secure/data");
         when(jwtUtil.extractUsername("token")).thenReturn("unknown");
         when(userDetailsService.loadUserByUsername("unknown")).thenThrow(new UsernameNotFoundException("Not found"));
 
         filter.doFilter(request, response, filterChain);
 
-        // Should clear cookie and redirect
-        Cookie cookie = response.getCookie("jwt");
+        // Should clear cookie and redirect to /
+        Cookie cookie = response.getCookie("kitchome_access");
         assertNotNull(cookie);
         assertEquals(0, cookie.getMaxAge());
         assertEquals("/", cookie.getPath());
         assertEquals(302, response.getStatus());
         assertEquals("/", response.getRedirectedUrl());
+    }
+
+    // --- Stale Cookie Tests ---
+
+    @Test
+    void testDoFilterInternal_StaleJwt_OnPublicPath_ShouldPassThrough() throws Exception {
+        // Simulates a user clicking a verification link while still holding an expired JWT cookie
+        // from a previous session (e.g. from another localhost project).
+        // The filter should: clear the stale cookie and let the request through anonymously.
+        request.setCookies(new Cookie("kitchome_access", "stale.expired.token"));
+        request.setServletPath("/api/v1/auth/verify-email");
+
+        when(jwtUtil.extractUsername("stale.expired.token"))
+                .thenThrow(new io.jsonwebtoken.ExpiredJwtException(null, null, "Token expired"));
+
+        filter.doFilter(request, response, filterChain);
+
+        // Auth context must remain null (anonymous)
+        assertNull(SecurityContextHolder.getContext().getAuthentication());
+        // Stale cookie must be cleared (maxAge=0)
+        Cookie clearedCookie = response.getCookie("kitchome_access");
+        assertNotNull(clearedCookie);
+        assertEquals(0, clearedCookie.getMaxAge());
+        // Filter chain must have continued — request was NOT blocked
+        assertNotNull(filterChain.getRequest());
+        // Must NOT have invoked the entry point (no 401)
+        verify(authenticationEntryPoint, never()).commence(any(), any(), any());
+    }
+
+    @Test
+    void testDoFilterInternal_StaleJwt_OnProtectedPath_ShouldReturn401() throws Exception {
+        // A stale/malformed JWT hitting a PROTECTED endpoint should still result in 401.
+        request.setCookies(new Cookie("kitchome_access", "stale.expired.token"));
+        request.setServletPath("/api/v1/secure/sensitive-data");
+
+        when(jwtUtil.extractUsername("stale.expired.token"))
+                .thenThrow(new io.jsonwebtoken.ExpiredJwtException(null, null, "Token expired"));
+
+        filter.doFilter(request, response, filterChain);
+
+        // Must invoke the authentication entry point (triggers 401)
+        verify(authenticationEntryPoint).commence(eq(request), eq(response), any(AuthenticationException.class));
+        // Filter chain must NOT have continued
+        assertNull(filterChain.getRequest());
     }
 }

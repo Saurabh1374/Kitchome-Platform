@@ -6,6 +6,7 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -28,6 +29,7 @@ public class RefreshToken extends BaseEntity {
 
         @ManyToOne
         @JoinColumn(name = "user_id")
+        @ToString.Exclude
         private User user;
 
         private String tokenHash;

@@ -27,7 +27,7 @@ public class EmailService {
     public void sendVerificationEmail(String to, String token) {
         try {
             String subject = "Verify your email";
-            String verificationUrl = baseUrl + "/verify-email?token=" + token;
+            String verificationUrl = baseUrl + "/api/v1/auth/verify-email?token=" + token;
             String content = buildEmailContent(
                     "Welcome to KitChome! Please verify your email by clicking the link below:",
                     "Verify Email", verificationUrl);

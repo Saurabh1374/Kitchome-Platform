@@ -46,7 +46,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             // 1. Try to get JWT from cookies
             if (request.getCookies() != null) {
                 for (Cookie cookie : request.getCookies()) {
-                    if ("jwt".equals(cookie.getName())) {
+                    if ("kitchome_access".equals(cookie.getName())) {
                         jwt = cookie.getValue();
                         log.debug("JWT found in cookie.");
                         break;
@@ -129,13 +129,33 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         } catch (JwtException e) {
             log.warn("JWT validation failed: {}", e.getMessage());
+            // If this is a public/auth path, clear the stale cookie and proceed anonymously
+            // instead of blocking with a 401. This handles the case where an expired cookie
+            // from a previous session is sent to a public endpoint (e.g., /api/v1/auth/verify-email).
+            String path = request.getServletPath();
+            boolean isPublicPath = path.startsWith("/api/v1/auth/") ||
+                    path.equals("/login") ||
+                    path.equals("/register") ||
+                    path.equals("/verify-email") ||
+                    path.startsWith("/css/") ||
+                    path.startsWith("/js/");
+            if (isPublicPath) {
+                log.debug("Invalid JWT on public path {}, clearing stale cookie and proceeding anonymously.", path);
+                Cookie expired = new Cookie("kitchome_access", null);
+                expired.setPath("/");
+                expired.setHttpOnly(true);
+                expired.setMaxAge(0);
+                response.addCookie(expired);
+                filterChain.doFilter(request, response);
+                return;
+            }
             authenticationEntryPoint.commence(request, response, new AuthenticationException("Invalid JWT token", e) {
             });
             return; // Stop further processing if JWT is invalid
         } catch (UsernameNotFoundException e) {
             log.warn("User not found for username extracted from JWT: {}", username);
             // Clear the invalid cookie
-            Cookie cookie = new Cookie("jwt", null);
+            Cookie cookie = new Cookie("kitchome_access", null);
             cookie.setPath("/");
             cookie.setHttpOnly(true);
             cookie.setMaxAge(0);

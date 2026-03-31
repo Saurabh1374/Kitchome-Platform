@@ -73,7 +73,7 @@ class AuthenticationServiceTest {
         assertNotNull(setCookies);
         assertEquals(2, setCookies.size());
 
-        boolean hasJwtCookie = setCookies.stream().anyMatch(c -> c.contains("jwt=mock-jwt-token") && c.contains("HttpOnly") && c.contains("Max-Age=3600"));
+        boolean hasJwtCookie = setCookies.stream().anyMatch(c -> c.contains("kitchome_access=mock-jwt-token") && c.contains("HttpOnly") && c.contains("Max-Age=3600"));
         boolean hasRefreshCookie = setCookies.stream().anyMatch(c -> c.contains("refreshToken=mock-refresh-token") && c.contains("HttpOnly") && c.contains("Max-Age=1296000"));
 
         assertTrue(hasJwtCookie);
@@ -91,7 +91,7 @@ class AuthenticationServiceTest {
         assertNotNull(setCookies);
         assertEquals(2, setCookies.size());
 
-        boolean hasJwtCookie = setCookies.stream().anyMatch(c -> c.contains("jwt=") && c.contains("Max-Age=0") && c.contains("SameSite=Strict"));
+        boolean hasJwtCookie = setCookies.stream().anyMatch(c -> c.contains("kitchome_access=") && c.contains("Max-Age=0") && c.contains("SameSite=Strict"));
         boolean hasRefreshCookie = setCookies.stream().anyMatch(c -> c.contains("refreshToken=") && c.contains("Max-Age=0") && c.contains("SameSite=Strict"));
 
         assertTrue(hasJwtCookie);

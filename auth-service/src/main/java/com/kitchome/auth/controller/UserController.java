@@ -71,16 +71,14 @@ public class UserController {
 	private final AuthenticationManager authenticationManager;
 	private final JwtUtil jwtUtil;
 	private final RefreshTokenService refreshTokenService;
-	private final AuthenticationSuccessHandler successHandler;
 
 	public UserController(UserCredentials userService, AuthenticationManager authenticationManager, JwtUtil jwtUtil,
-			RefreshTokenService refreshTokenService, AuthenticationSuccessHandler successHandler) {
+			RefreshTokenService refreshTokenService) {
 		super();
 		this.userService = userService;
 		this.authenticationManager = authenticationManager;
 		this.jwtUtil = jwtUtil;
 		this.refreshTokenService = refreshTokenService;
-		this.successHandler = successHandler;
 	}
 
 	@GetMapping("/register")

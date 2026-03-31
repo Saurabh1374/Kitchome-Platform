@@ -144,19 +144,27 @@ public class AuthRestController {
     }
 
     private String getFingerprint(HttpServletRequest request) {
-        // Prefer header or cookie
+        // 1. Prefer explicit header (sent by capable clients / mobile apps)
         String fingerprint = request.getHeader("X-Device-Fingerprint");
-        if (fingerprint == null) {
-            Cookie[] cookies = request.getCookies();
-            if (cookies != null) {
-                for (Cookie c : cookies) {
-                    if ("fingerprint".equals(c.getName())) {
-                        return c.getValue();
-                    }
+        if (fingerprint != null) {
+            return fingerprint;
+        }
+        // 2. Fallback: check fingerprint cookie
+        Cookie[] cookies = request.getCookies();
+        if (cookies != null) {
+            for (Cookie c : cookies) {
+                if ("fingerprint".equals(c.getName())) {
+                    return c.getValue();
                 }
             }
         }
-        return "unknown";
+        // 3. Last resort: compute from IP + User-Agent, matching the strategy used at
+        // login
+        // (AuthenticationService.generateFingerprint uses the same formula)
+        String userAgent = request.getHeader("User-Agent");
+        String ip = request.getRemoteAddr();
+        return java.util.UUID.nameUUIDFromBytes(
+                ((userAgent != null ? userAgent : "") + ip).getBytes()).toString();
     }
 
     @GetMapping("/me")
@@ -181,12 +189,12 @@ public class AuthRestController {
         try {
             userService.verifyUser(token);
             return ResponseEntity.status(HttpStatus.FOUND)
-                    .header(HttpHeaders.LOCATION, "http://localhost:5173/login?verified=true")
+                    .header(HttpHeaders.LOCATION, "/login?verified=true")
                     .build();
         } catch (com.kitchome.auth.Exception.AuthException e) {
             if (ErrorCode.TOKEN_NOT_FOUND.getErrorCode().equals(e.getErrorCode())) {
                 return ResponseEntity.status(HttpStatus.FOUND)
-                        .header(HttpHeaders.LOCATION, "http://localhost:5173/login?alreadyVerified=true")
+                        .header(HttpHeaders.LOCATION, "/login?alreadyVerified=true")
                         .build();
             }
             throw e;
@@ -198,7 +206,8 @@ public class AuthRestController {
         String email = payload.get("email");
         try {
             userService.resendVerificationLink(email);
-            return ResponseEntity.ok(ApiResponse.<String>success("A new verification link has been sent to your email."));
+            return ResponseEntity
+                    .ok(ApiResponse.<String>success("A new verification link has been sent to your email."));
         } catch (com.kitchome.auth.Exception.AuthException e) {
             if ("Account is already verified".equals(e.getMessage())) {
                 return ResponseEntity.ok(ApiResponse.<String>success("ALREADY_VERIFIED"));
@@ -262,10 +271,11 @@ public class AuthRestController {
     public ResponseEntity<ApiResponse<List<IntegrationInfoDTO>>> getIntegrations(Authentication auth) {
         if (auth == null || !auth.isAuthenticated() || "anonymousUser".equals(auth.getName())) {
             return ResponseEntity.status(org.springframework.http.HttpStatus.UNAUTHORIZED)
-                    .body(ApiResponse.<List<IntegrationInfoDTO>>error("User must be logged in to view integrations.", com.kitchome.auth.util.ErrorCode.UNAUTHORIZED_ACCESS.getErrorCode(), org.springframework.http.HttpStatus.UNAUTHORIZED));
+                    .body(ApiResponse.<List<IntegrationInfoDTO>>error("User must be logged in to view integrations.",
+                            com.kitchome.auth.util.ErrorCode.UNAUTHORIZED_ACCESS.getErrorCode(),
+                            org.springframework.http.HttpStatus.UNAUTHORIZED));
         }
         return ResponseEntity.ok(ApiResponse.success(integrationService.getAvailableIntegrations(auth.getName())));
     }
-
 
 }

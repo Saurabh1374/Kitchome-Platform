@@ -40,9 +40,12 @@ class CustomOAuth2UserServiceTest {
 
     private CustomOAuth2UserService service;
 
+    @Mock
+    private com.kitchome.auth.authentication.UserCredentials userCredentials;
+
     @BeforeEach
     void setUp() {
-        service = new CustomOAuth2UserService(userRepository);
+        service = new CustomOAuth2UserService(userRepository, userCredentials);
         service.setRestOperations(restOperations);
     }
 
@@ -71,7 +74,8 @@ class CustomOAuth2UserServiceTest {
         // Mock RestOperations response
         Map<String, Object> attributes = Map.of(
                 "email", "test@example.com",
-                "name", "Test User"
+                "name", "Test User",
+                "email_verified", true
         );
         ResponseEntity<Map<String, Object>> response = new ResponseEntity<>(attributes, HttpStatus.OK);
         when(restOperations.exchange(any(RequestEntity.class), any(ParameterizedTypeReference.class)))
@@ -105,7 +109,8 @@ class CustomOAuth2UserServiceTest {
 
         Map<String, Object> attributes = Map.of(
                 "email", "test@example.com",
-                "name", "Test User"
+                "name", "Test User",
+                "email_verified", true
         );
         ResponseEntity<Map<String, Object>> response = new ResponseEntity<>(attributes, HttpStatus.OK);
         when(restOperations.exchange(any(RequestEntity.class), any(ParameterizedTypeReference.class)))
@@ -137,7 +142,8 @@ class CustomOAuth2UserServiceTest {
 
         Map<String, Object> attributes = Map.of(
                 "email", "new@example.com",
-                "name", "New User"
+                "name", "New User",
+                "email_verified", true
         );
         ResponseEntity<Map<String, Object>> response = new ResponseEntity<>(attributes, HttpStatus.OK);
         when(restOperations.exchange(any(RequestEntity.class), any(ParameterizedTypeReference.class)))
@@ -159,5 +165,39 @@ class CustomOAuth2UserServiceTest {
         assertTrue(details.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_USER")));
 
         verify(userRepository).save(any(User.class));
+    }
+
+    @Test
+    void testLoadUser_UnverifiedEmail_TriggersNativeVerification() {
+        OAuth2UserRequest request = createRequest();
+
+        Map<String, Object> attributes = Map.of(
+                "email", "unverified@example.com",
+                "name", "Unverified User",
+                "email_verified", false
+        );
+        ResponseEntity<Map<String, Object>> response = new ResponseEntity<>(attributes, HttpStatus.OK);
+        when(restOperations.exchange(any(RequestEntity.class), any(ParameterizedTypeReference.class)))
+                .thenReturn(response);
+
+        when(userRepository.findUserByEmailIgnoreCase("unverified@example.com")).thenReturn(Optional.empty());
+        when(userRepository.save(any(User.class))).thenAnswer(i -> {
+            User u = i.getArgument(0);
+            u.setId(3L);
+            return u;
+        });
+
+        doNothing().when(userCredentials).resendVerificationLink("unverified@example.com");
+
+        OAuth2User user = service.loadUser(request);
+
+        assertTrue(user instanceof CustomUserDetails);
+        CustomUserDetails details = (CustomUserDetails) user;
+
+        assertFalse(details.isEnabled());
+        assertFalse(details.isEmailVerified());
+
+        verify(userRepository).save(any(User.class));
+        verify(userCredentials).resendVerificationLink("unverified@example.com");
     }
 }

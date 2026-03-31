@@ -55,7 +55,7 @@ public class AuthenticationService {
         // 3. Set Cookies
 
         // Access Token Cookie (Short lived, e.g., same as JWT expiration)
-        ResponseCookie jwtCookie = ResponseCookie.from("jwt", accessToken)
+        ResponseCookie jwtCookie = ResponseCookie.from("kitchome_access", accessToken)
                 .httpOnly(true)
                 .secure(false) // TODO: Set to true in production (HTTPS)
                 .path("/")
@@ -89,7 +89,7 @@ public class AuthenticationService {
      * Clears authentication cookies to log out the user.
      */
     public void logout(HttpServletRequest request, HttpServletResponse response) {
-        ResponseCookie jwtCookie = ResponseCookie.from("jwt", "")
+        ResponseCookie jwtCookie = ResponseCookie.from("kitchome_access", "")
                 .httpOnly(true)
                 .secure(false)
                 .path("/")

@@ -19,12 +19,17 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.springframework.context.annotation.Lazy;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 
     private final UserRepositoryDao userRepository;
+    
+    @Lazy
+    private final com.kitchome.auth.authentication.UserCredentials userCredentials;
 
     @Override
     @Transactional
@@ -38,16 +43,32 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 
         log.info("Processing OAuth2 login for provider: {}, email: {}", provider, email);
 
+        // Explicitly check for verification claim (Google returns Boolean)
+        Boolean isOauthEmailVerified = oAuth2User.getAttribute("email_verified");
+        boolean emailVerified = (isOauthEmailVerified != null && isOauthEmailVerified);
+
         Optional<User> userOptional = userRepository.findUserByEmailIgnoreCase(email);
         User user;
+        boolean triggerVerificationEmail = false;
+
         if (userOptional.isPresent()) {
             user = userOptional.get();
             // Update existing user with provider info if not already set
             if (user.getProvider() == null) {
                 user.setProvider(provider);
                 user.setProviderId(providerId);
-                user.setEmailVerified(true);
-                user.setEnabled(true);
+                if (emailVerified) {
+                    user.setEmailVerified(true);
+                    user.setEnabled(true);
+                } else if (!user.isEmailVerified()) {
+                    // It was an existing user but they were never verified natively either!
+                    user.setEnabled(false);
+                    triggerVerificationEmail = true;
+                }
+                user = userRepository.save(user);
+            } else if (!user.isEmailVerified() && !emailVerified) {
+                user.setEnabled(false);
+                triggerVerificationEmail = true;
                 user = userRepository.save(user);
             }
         } else {
@@ -57,11 +78,21 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
             user.setUsername(email); // Use email as username for social login
             user.setProvider(provider);
             user.setProviderId(providerId);
-            user.setEnabled(true); // Social logins are auto-verified
-            user.setEmailVerified(true);
+            user.setEnabled(emailVerified);
+            user.setEmailVerified(emailVerified);
             user.setRoles(Set.of(Role.USER));
             user = userRepository.save(user);
-            log.info("Created new user via OAuth2 for email: {}", email);
+            
+            if (!emailVerified) {
+                triggerVerificationEmail = true;
+            }
+            log.info("Created new user via OAuth2 for email: {}, verified: {}", email, emailVerified);
+        }
+
+        // Trigger native email flow if the OAuth provider did not guarantee verification
+        if (triggerVerificationEmail) {
+            log.warn("OAuth provider did not verify email {}. Triggering native KitChome verification.", email);
+            userCredentials.resendVerificationLink(email);
         }
 
         Set<GrantedAuthority> authorities = user.getRoles().stream()
@@ -77,7 +108,9 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
                 user.getUsername(),
                 user.getEmail(),
                 authorities,
-                oAuth2User.getAttributes()
+                oAuth2User.getAttributes(),
+                user.isEnabled(),
+                user.isEmailVerified()
         );
     }
 }

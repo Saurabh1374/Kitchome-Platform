@@ -41,30 +41,9 @@ import org.springframework.security.web.session.HttpSessionEventPublisher;
 import org.springframework.security.web.session.SessionInformationExpiredStrategy;
 
 /*
- * here we are configuring spring security to
- * secure just the "/private" rest api
- * which is not a good practice at all. we will
- * correct all of this as we move further
- * */
-
-/*
- * here we are implementing
- * cocurrent session control
- * so that a user can have only ne active session
+ * We are implementing a stateless JWT authentication architecture.
+ * Concurrent session tracking and form login mechanics have been deprecated.
  */
-
-/*form login is enabled
-user credentials are obtained through
-post req from login page.
- */
-
-/*
-* we are going to implement jwt
-* and make authentication stateless
-* implementation of concurrent session
-* will be change as well as logout logic will
-* also  be changed as things are not session based now
-*/
 
 @Configuration
 @RequiredArgsConstructor
@@ -77,6 +56,7 @@ public class SecurityConfig {
 	private final PasswordEncoder passwordEncoder;
 	private final com.kitchome.auth.dao.UserRepositoryDao userRepositoryDao;
 	private final com.kitchome.auth.service.AuthenticationService authService;
+	private final com.kitchome.auth.service.CustomOAuth2UserService customOAuth2UserService;
 
 	@Bean
 	public SecurityFilterChain securityHttpConfig(HttpSecurity http) throws Exception {
@@ -110,8 +90,17 @@ public class SecurityConfig {
 				// .addFilterAfter(new AlreadyLoggedInFilter(),JwtAuthenticationFilter.class)
 				.oauth2Login(oauth2 -> oauth2
 						.userInfoEndpoint(
-								userInfo -> userInfo.userService(new CustomOAuth2UserService(userRepositoryDao)))
+								userInfo -> userInfo.userService(customOAuth2UserService))
 						.successHandler((request, response, authentication) -> {
+							Object principal = authentication.getPrincipal();
+							if (principal instanceof com.kitchome.auth.authentication.CustomUserDetails) {
+								com.kitchome.auth.authentication.CustomUserDetails userDetails = (com.kitchome.auth.authentication.CustomUserDetails) principal;
+								if (!userDetails.isEmailVerified()) {
+									// Redirect user cleanly so they are denied JWT entry and see the verification message
+									response.sendRedirect("/login?unverified_oauth=true");
+									return;
+								}
+							}
 							authService.finalizeLogin(request, response, authentication);
 							// Redirect to dashboard (tokens are now in HttpOnly cookies!)
 							response.sendRedirect("/dashboard");
@@ -124,34 +113,7 @@ public class SecurityConfig {
 		// .formLogin(Customizer.withDefaults())
 	}
 
-	/*
-	 * this bean keeps track
-	 * of session creation and
-	 * expiration.
-	 *
-	 */
-	@Bean
-	public static HttpSessionEventPublisher httpSessionEventPublisher() {
-		return new HttpSessionEventPublisher();
-	}
 
-	@Bean
-	public SessionInformationExpiredStrategy sessionInformationExpiredStrategy() {
-		return event -> {
-			HttpServletResponse response = event.getResponse();
-			response.sendRedirect("/api/v1/users/login?session=maxed");
-		};
-	}
-
-	/*
-	 * keeps track of active session
-	 * creates a new session if not available
-	 * in-memory.
-	 */
-	@Bean
-	public SessionRegistry sessionRegistry() {
-		return new SessionRegistryImpl();
-	}
 
 	/*
 	 * default authentication provider used
@@ -166,15 +128,7 @@ public class SecurityConfig {
 		return provider;
 	}
 
-	// @Bean
-	// public UserDetailsService userDetailsService() {
-	//
-	// return new InMemoryUserDetailsManager(User.builder().username("sam")
-	// // {noop} is telling security config not to delegate
-	// // any password encode and store it in plain text
-	// .password("{noop}common").authorities("ROLE_user").build());
-	//
-	// }
+
 	@Bean
 	public AuthenticationManager authenticationManager(HttpSecurity http) throws Exception {
 		return http.getSharedObject(AuthenticationManagerBuilder.class)

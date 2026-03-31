@@ -51,6 +51,11 @@ public class CustomUserDetails implements UserDetails, OAuth2User {
 
 	public CustomUserDetails(Long id, String username, String email, Collection<GrantedAuthority> authorities,
 			Map<String, Object> attributes) {
+		this(id, username, email, authorities, attributes, true, true);
+	}
+
+	public CustomUserDetails(Long id, String username, String email, Collection<GrantedAuthority> authorities,
+			Map<String, Object> attributes, boolean enabled, boolean emailVerified) {
 		this.id = id;
 		this.userName = username;
 		this.email = email;
@@ -63,8 +68,8 @@ public class CustomUserDetails implements UserDetails, OAuth2User {
 			this.authorities = authorities;
 		}
 
-		this.enabled = true;
-		this.emailVerified = true;
+		this.enabled = enabled;
+		this.emailVerified = emailVerified;
 		this.attributes = attributes;
 	}
 
