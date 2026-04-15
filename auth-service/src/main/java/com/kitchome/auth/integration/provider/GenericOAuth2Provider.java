@@ -95,13 +95,13 @@ public abstract class GenericOAuth2Provider implements CredentialProvider {
 
     @Override
     public Mono<CredentialObject> refresh(CredentialObject credential) {
-        return credential.getKeyValue("refresh_token")
-                .map(refreshToken -> exchangeRefreshToken(refreshToken)
-                        .map(tokens -> {
-                            updateCredentialObject(credential, tokens);
-                            return credential;
-                        }))
-                .orElseGet(() -> Mono.error(new IllegalStateException("No refresh token available to refresh")));
+        return Mono.justOrEmpty(credential.getKeyValue("refresh_token"))
+                .switchIfEmpty(Mono.error(new IllegalStateException("No refresh token available to refresh")))
+                .flatMap(refreshToken -> exchangeRefreshToken(refreshToken))
+                .map(tokens -> {
+                    updateCredentialObject(credential, tokens);
+                    return credential;
+                });
     }
 
     protected Mono<Map<String, Object>> exchangeRefreshToken(String refreshToken) {

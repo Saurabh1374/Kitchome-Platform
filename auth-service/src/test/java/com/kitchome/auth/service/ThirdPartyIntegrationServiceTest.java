@@ -1,5 +1,6 @@
 package com.kitchome.auth.service;
 
+import com.kitchome.auth.config.ApplicationConfig;
 import com.kitchome.auth.dao.IntegrationMetadataRepository;
 import com.kitchome.auth.dao.UserRepositoryDao;
 import com.kitchome.auth.entity.IntegrationMetadata;
@@ -27,6 +28,8 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class ThirdPartyIntegrationServiceTest {
 
+    @Mock
+    private ApplicationConfig applicationConfig;
     @Mock
     private CredentialLifecycleManager credentialLifecycleManager;
     @Mock
@@ -65,11 +68,12 @@ class ThirdPartyIntegrationServiceTest {
         tokens.put("expires_in", 3600);
         when(credentialProvider.exchangeCodeForTokens(code, redirectUri)).thenReturn(Mono.just(tokens));
 
-        when(integrationMetadataRepository.findByServiceNameAndUser(serviceName, mockUser)).thenReturn(Optional.empty());
+        when(integrationMetadataRepository.findByServiceNameAndUser(serviceName, mockUser))
+                .thenReturn(Optional.empty());
         when(integrationMetadataRepository.save(any(IntegrationMetadata.class))).thenReturn(new IntegrationMetadata());
 
         Mono<Void> result = service.linkUserToProvider("testuser", serviceName, code, redirectUri);
-        
+
         result.block();
 
         verify(credentialLifecycleManager).storeCredential(eq("1"), eq(serviceName), any(CredentialObject.class));
@@ -90,10 +94,10 @@ class ThirdPartyIntegrationServiceTest {
     @Test
     void testGetSignedAccessKey_Success() {
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(mockUser));
-        
+
         CredentialObject cred = new CredentialObject();
         cred.addKey("access_token", "validAccess");
-        
+
         when(credentialLifecycleManager.getValidCredential("1", "google")).thenReturn(Mono.just(cred));
         when(jwtUtil.GenerateTokenWithClaims(anyMap(), eq("testuser"))).thenReturn("signed.jwt.token");
 
@@ -105,7 +109,7 @@ class ThirdPartyIntegrationServiceTest {
     @Test
     void testGetSignedAccessKey_MissingToken() {
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(mockUser));
-        
+
         CredentialObject cred = new CredentialObject(); // no access_token
         when(credentialLifecycleManager.getValidCredential("1", "google")).thenReturn(Mono.just(cred));
 
@@ -117,7 +121,7 @@ class ThirdPartyIntegrationServiceTest {
     @Test
     void testGetSignedAccessKey_CredentialNotFound() {
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(mockUser));
-        
+
         when(credentialLifecycleManager.getValidCredential("1", "google")).thenReturn(Mono.empty());
 
         Mono<String> result = service.getSignedAccessKey("testuser", "google");
@@ -154,7 +158,7 @@ class ThirdPartyIntegrationServiceTest {
         List<IntegrationInfoDTO> result = service.getAvailableIntegrations("testuser");
 
         assertEquals(2, result.size());
-        
+
         IntegrationInfoDTO gInfo = result.stream().filter(i -> i.getName().equals("google")).findFirst().get();
         assertTrue(gInfo.isConnected());
 

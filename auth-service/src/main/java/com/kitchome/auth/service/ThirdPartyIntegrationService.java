@@ -1,5 +1,6 @@
 package com.kitchome.auth.service;
 
+import com.kitchome.auth.config.ApplicationConfig;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -26,6 +27,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class ThirdPartyIntegrationService {
 
+    // private final ApplicationConfig applicationConfig;
     private final CredentialLifecycleManager credentialLifecycleManager;
     private final IntegrationMetadataRepository integrationMetadataRepository;
     private final UserRepositoryDao userRepository;
@@ -36,14 +38,17 @@ public class ThirdPartyIntegrationService {
      */
     public Mono<Void> linkUserToProvider(String username, String serviceName, String code, String redirectUri) {
         CredentialProvider provider = credentialLifecycleManager.findProvider(serviceName);
-        return userRepository.findByUsername(username)
-                .map(user -> provider.exchangeCodeForTokens(code, redirectUri)
+        return Mono.fromCallable(() -> userRepository.findByUsername(username))
+                .subscribeOn(reactor.core.scheduler.Schedulers.boundedElastic())
+                .flatMap(Mono::justOrEmpty)
+                .switchIfEmpty(Mono.error(new RuntimeException("User not found")))
+                .flatMap(user -> provider.exchangeCodeForTokens(code, redirectUri)
                         .flatMap(tokens -> {
                             CredentialObject credential = new CredentialObject();
                             credential.setType(CredentialType.OAUTH2);
                             credential.setUserId(user.getId());
                             credential.setProviderId(serviceName);
-                            
+
                             if (tokens.containsKey("access_token")) {
                                 credential.addKey("access_token", (String) tokens.get("access_token"));
                             }
@@ -57,24 +62,33 @@ public class ThirdPartyIntegrationService {
                                 credential.setExpiresAt(Long.parseLong(tokens.get("expires_at").toString()));
                             }
 
-                            // Store via lifecycle manager
-                            credentialLifecycleManager.storeCredential(user.getId().toString(), serviceName, credential);
+                            // 1. Reactive boundary for storing credentials
+                            Mono<Object> saveCredentialMono = Mono.fromCallable(() -> {
+                                credentialLifecycleManager.storeCredential(user.getId().toString(), serviceName,
+                                        credential);
+                                return new Object();
+                            }).subscribeOn(reactor.core.scheduler.Schedulers.boundedElastic());
 
-                            // Save metadata if not already present
-                            if (integrationMetadataRepository.findByServiceNameAndUser(serviceName, user).isEmpty()) {
-                                IntegrationMetadata metadata = IntegrationMetadata
-                                        .builder()
-                                        .serviceName(serviceName)
-                                        // Path is managed dynamically by LifecycleManager now, we store symbolic providerId
-                                        .vaultPath(serviceName) 
-                                        .user(user)
-                                        .build();
-                                integrationMetadataRepository.save(metadata);
-                            }
-                            return Mono.empty();
-                        }))
-                .orElse(Mono.error(new RuntimeException("User not found")))
-                .then();
+                            // 2. Reactive boundary for persisting metadata
+                            Mono<Object> saveMetadataMono = Mono.fromCallable(
+                                    () -> integrationMetadataRepository.findByServiceNameAndUser(serviceName, user))
+                                    .subscribeOn(reactor.core.scheduler.Schedulers.boundedElastic())
+                                    .flatMap(existing -> {
+                                        if (existing.isEmpty()) {
+                                            IntegrationMetadata metadata = IntegrationMetadata.builder()
+                                                    .serviceName(serviceName)
+                                                    .vaultPath(serviceName)
+                                                    .user(user)
+                                                    .build();
+                                            return Mono.fromCallable(() -> integrationMetadataRepository.save(metadata))
+                                                    .subscribeOn(reactor.core.scheduler.Schedulers.boundedElastic());
+                                        }
+                                        return Mono.empty();
+                                    });
+
+                            // Guarantee strict sequential execution and error tracking
+                            return saveCredentialMono.then(saveMetadataMono).then();
+                        }));
     }
 
     /**
@@ -82,21 +96,21 @@ public class ThirdPartyIntegrationService {
      * signed payload.
      */
     public Mono<String> getSignedAccessKey(String username, String serviceName) {
-        return userRepository.findByUsername(username)
-                .map(user -> credentialLifecycleManager.getValidCredential(user.getId().toString(), serviceName)
-                        .map(credential -> {
-                            String activeKey = credential.getKeyValue("access_token").orElseThrow(
-                                    () -> new IllegalStateException("Access token missing in credential")
-                            );
-                            Map<String, Object> claims = new HashMap<>();
-                            claims.put("service", serviceName);
-                            claims.put("key", activeKey);
-                            return jwtUtil.GenerateTokenWithClaims(claims, username);
-                        })
-                        .switchIfEmpty(Mono.error(new com.kitchome.auth.Exception.AuthException(
-                                com.kitchome.auth.util.ErrorCode.TOKEN_NOT_FOUND)))
-                )
-                .orElse(Mono.error(new RuntimeException("User not found")));
+        return Mono.fromCallable(() -> userRepository.findByUsername(username))
+                .subscribeOn(reactor.core.scheduler.Schedulers.boundedElastic())
+                .flatMap(Mono::justOrEmpty)
+                .switchIfEmpty(Mono.error(new RuntimeException("User not found")))
+                .flatMap(user -> credentialLifecycleManager.getValidCredential(user.getId().toString(), serviceName))
+                .switchIfEmpty(Mono.error(new com.kitchome.auth.Exception.AuthException(
+                        com.kitchome.auth.util.ErrorCode.TOKEN_NOT_FOUND)))
+                .map(credential -> {
+                    String activeKey = credential.getKeyValue("access_token").orElseThrow(
+                            () -> new IllegalStateException("Access token missing in credential"));
+                    Map<String, Object> claims = new HashMap<>();
+                    claims.put("service", serviceName);
+                    claims.put("key", activeKey);
+                    return jwtUtil.GenerateTokenWithClaims(claims, username);
+                });
     }
 
     public String getAuthorizationLink(String serviceName, String username) {
@@ -108,7 +122,8 @@ public class ThirdPartyIntegrationService {
     }
 
     /**
-     * Get a list of all available integrations and whether they are connected for the user.
+     * Get a list of all available integrations and whether they are connected for
+     * the user.
      */
     public List<IntegrationInfoDTO> getAvailableIntegrations(String username) {
         User user = userRepository.findByUsername(username)
@@ -119,7 +134,10 @@ public class ThirdPartyIntegrationService {
                 .collect(Collectors.toList());
 
         return credentialLifecycleManager.getProviders().stream()
-                .filter(p -> !(p instanceof com.kitchome.auth.integration.provider.BearerTokenProvider)) // Filter out internal providers if any
+                .filter(p -> !(p instanceof com.kitchome.auth.integration.provider.BearerTokenProvider)) // Filter out
+                                                                                                         // internal
+                                                                                                         // providers if
+                                                                                                         // any
                 .map(provider -> IntegrationInfoDTO.builder()
                         .name(provider.getProviderId())
                         .displayName(provider.getDisplayName())

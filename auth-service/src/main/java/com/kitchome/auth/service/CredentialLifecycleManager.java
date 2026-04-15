@@ -63,9 +63,10 @@ public class CredentialLifecycleManager {
                                 },
                                 l -> provider.refresh(credential)
                                         .flatMap(updatedCred -> 
-                                            Mono.fromRunnable(() -> credentialStorage.store(path, updatedCred))
-                                                .subscribeOn(Schedulers.boundedElastic())
-                                                .thenReturn(updatedCred)
+                                            Mono.fromCallable(() -> {
+                                                credentialStorage.store(path, updatedCred);
+                                                return updatedCred;
+                                            }).subscribeOn(Schedulers.boundedElastic())
                                         ),
                                 Semaphore::release
                         ).subscribeOn(Schedulers.boundedElastic());
