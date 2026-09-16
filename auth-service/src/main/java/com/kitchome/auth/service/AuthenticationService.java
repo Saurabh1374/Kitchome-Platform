@@ -41,7 +41,9 @@ public class AuthenticationService {
 
         log.info("Finalizing login for user: {} with authorities: {}", username, authRoles);
 
-        Optional<User> userOpt = userRepositoryDao.findByUsername(username);
+        Optional<User> userOpt = userRepositoryDao.findUserByUsernameIgnoreCase(username)
+                .or(() -> userRepositoryDao.findUserByEmailIgnoreCase(username));
+        String canonicalUsername = userOpt.map(User::getUsername).orElse(username);
         String email = userOpt.map(User::getEmail).orElse(null);
         String tenantId = userOpt.map(u -> u.getOrganization() != null ? u.getOrganization().getCode() : "default").orElse("default");
         String tier = userOpt.map(User::getTier).orElse("free");
@@ -49,14 +51,14 @@ public class AuthenticationService {
                 .orElse(authRoles);
 
         // 1. Generate Enriched Minimal Access Token (JWT) with tenant_id and tier
-        String accessToken = jwtUtil.generateToken(username, email, tenantId, tier, roles);
+        String accessToken = jwtUtil.generateToken(canonicalUsername, email, tenantId, tier, roles);
 
         // 2. Capture Metadata & Generate Refresh Token
         String ip = request.getRemoteAddr();
         String userAgent = request.getHeader("User-Agent");
         String fingerprint = generateFingerprint(ip, userAgent);
 
-        RefreshToken refreshToken = refreshTokenService.generateAndStoreRefreshToken(username, fingerprint, ip,
+        RefreshToken refreshToken = refreshTokenService.generateAndStoreRefreshToken(canonicalUsername, fingerprint, ip,
                 userAgent);
 
         // 3. Set Cookies

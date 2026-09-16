@@ -125,6 +125,16 @@
             if (rUri) {
                 const regLink = document.querySelector('a[href="/register"]');
                 if (regLink) regLink.href = `/register?redirect_uri=${encodeURIComponent(rUri)}`;
+                
+                // Store in cookie so Spring Security OAuth successHandler can redirect back upon returning from Google
+                document.cookie = `oauth2_redirect_uri=${encodeURIComponent(rUri)}; path=/; max-age=600; SameSite=Lax`;
+                
+                const googleLink = document.querySelector('a[href^="/oauth2/authorization/google"]');
+                if (googleLink) {
+                    googleLink.addEventListener("click", function () {
+                        document.cookie = `oauth2_redirect_uri=${encodeURIComponent(rUri)}; path=/; max-age=600; SameSite=Lax`;
+                    });
+                }
             }
             // Auth state is now managed by cookies, backend will handle redirects for authenticated users accessing /login.
 

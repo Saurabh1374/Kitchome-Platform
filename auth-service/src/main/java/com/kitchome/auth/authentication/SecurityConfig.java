@@ -104,9 +104,35 @@ public class SecurityConfig {
 									return;
 								}
 							}
-							authService.finalizeLogin(request, response, authentication);
-							// Redirect to dashboard (tokens are now in HttpOnly cookies!)
-							response.sendRedirect("/dashboard");
+							String accessToken = authService.finalizeLogin(request, response, authentication);
+
+							// Check for oauth2_redirect_uri cookie (e.g. from Streamlit on port 8501)
+							String redirectUri = null;
+							if (request.getCookies() != null) {
+								for (jakarta.servlet.http.Cookie cookie : request.getCookies()) {
+									if ("oauth2_redirect_uri".equals(cookie.getName())) {
+										try {
+											redirectUri = java.net.URLDecoder.decode(cookie.getValue(), java.nio.charset.StandardCharsets.UTF_8);
+										} catch (Exception ignored) {
+											redirectUri = cookie.getValue();
+										}
+										// Clear the cookie
+										jakarta.servlet.http.Cookie clearCookie = new jakarta.servlet.http.Cookie("oauth2_redirect_uri", "");
+										clearCookie.setPath("/");
+										clearCookie.setMaxAge(0);
+										response.addCookie(clearCookie);
+										break;
+									}
+								}
+							}
+
+							if (redirectUri != null && !redirectUri.isBlank()) {
+								String separator = redirectUri.contains("?") ? "&" : "?";
+								response.sendRedirect(redirectUri + separator + "jwt=" + java.net.URLEncoder.encode(accessToken, java.nio.charset.StandardCharsets.UTF_8));
+							} else {
+								// Redirect to dashboard (tokens are now in HttpOnly cookies!)
+								response.sendRedirect("/dashboard");
+							}
 						}))
 				.exceptionHandling(ex -> ex
 						.accessDeniedHandler(customAccessDeniedHandler)

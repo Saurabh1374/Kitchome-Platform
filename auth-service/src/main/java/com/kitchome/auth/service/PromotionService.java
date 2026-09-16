@@ -30,15 +30,21 @@ public class PromotionService {
     private final UserRepositoryDao userRepo;
     private final RagServiceClient ragServiceClient;
 
+    private User findUserOrThrow(String username) {
+        return userRepo.findUserByUsernameIgnoreCase(username)
+                .or(() -> userRepo.findUserByEmailIgnoreCase(username))
+                .orElseThrow(() -> new ValidationException("User not found: " + username, "VALIDATION_FAILED"));
+    }
+
     @Transactional
     public AccessPromotionRequest submitRequest(String username, PromotionRequestDTO dto) {
-        User user = userRepo.findByUsername(username)
-                .orElseThrow(() -> new ValidationException("User not found: " + username, "VALIDATION_FAILED"));
+        User user = findUserOrThrow(username);
+        String canonicalUsername = user.getUsername();
 
         String tenantId = (user.getOrganization() != null) ? user.getOrganization().getCode() : "default";
         String serviceId = (dto.getServiceId() != null) ? dto.getServiceId() : "kitchome-rag";
 
-        Optional<UserServiceAccessOverview> existingOpt = accessOverviewRepo.findByUsernameAndServiceId(username, serviceId);
+        Optional<UserServiceAccessOverview> existingOpt = accessOverviewRepo.findByUsernameAndServiceId(canonicalUsername, serviceId);
         int currentClearance = existingOpt.map(UserServiceAccessOverview::getClearanceLevel).orElse(1);
         String currentScopes = existingOpt.map(UserServiceAccessOverview::getGrantedScopes).orElse("rag:read");
         String currentRole = existingOpt.map(UserServiceAccessOverview::getServiceRole).orElse("member");
@@ -48,7 +54,7 @@ public class PromotionService {
 
         AccessPromotionRequest req = AccessPromotionRequest.builder()
                 .user(user)
-                .username(username)
+                .username(canonicalUsername)
                 .tenantId(tenantId)
                 .serviceId(serviceId)
                 .currentClearance(currentClearance)
@@ -63,7 +69,7 @@ public class PromotionService {
                 .build();
 
         AccessPromotionRequest saved = promotionRepo.save(req);
-        log.info("User '{}' submitted promotion request ID={}", username, saved.getId());
+        log.info("User '{}' submitted promotion request ID={}", canonicalUsername, saved.getId());
         return saved;
     }
 
@@ -138,29 +144,35 @@ public class PromotionService {
 
     @Transactional(readOnly = true)
     public List<AccessPromotionRequest> getUserRequests(String username) {
-        return promotionRepo.findByUsernameOrderByCreatedAtDesc(username);
+        String canonical = userRepo.findUserByUsernameIgnoreCase(username)
+                .or(() -> userRepo.findUserByEmailIgnoreCase(username))
+                .map(User::getUsername).orElse(username);
+        return promotionRepo.findByUsernameOrderByCreatedAtDesc(canonical);
     }
 
     @Transactional(readOnly = true)
     public List<UserServiceAccessOverview> getUserAccessOverview(String username) {
-        return accessOverviewRepo.findByUsername(username);
+        String canonical = userRepo.findUserByUsernameIgnoreCase(username)
+                .or(() -> userRepo.findUserByEmailIgnoreCase(username))
+                .map(User::getUsername).orElse(username);
+        return accessOverviewRepo.findByUsername(canonical);
     }
 
     @Transactional
     public UnifiedProfileResponseDTO getUnifiedProfile(String username) {
-        User user = userRepo.findByUsername(username)
-                .orElseThrow(() -> new ValidationException("User not found: " + username, "VALIDATION_FAILED"));
+        User user = findUserOrThrow(username);
+        String canonicalUsername = user.getUsername();
 
         String tenantId = (user.getOrganization() != null) ? user.getOrganization().getCode() : "default";
         String orgName = (user.getOrganization() != null) ? user.getOrganization().getName() : "Personal / Default";
         String roles = user.getRoles().stream().map(Enum::name).collect(java.util.stream.Collectors.joining(", "));
 
-        List<UserServiceAccessOverview> overviews = accessOverviewRepo.findByUsername(username);
+        List<UserServiceAccessOverview> overviews = accessOverviewRepo.findByUsername(canonicalUsername);
         if (overviews.isEmpty()) {
             boolean isAdmin = user.getRoles().stream().anyMatch(r -> r.name().contains("ADMIN"));
             UserServiceAccessOverview initialOverview = UserServiceAccessOverview.builder()
                     .user(user)
-                    .username(username)
+                    .username(canonicalUsername)
                     .tenantId(tenantId)
                     .serviceId("kitchome-rag")
                     .serviceRole(isAdmin ? "admin" : "member")
@@ -173,7 +185,7 @@ public class PromotionService {
             overviews = List.of(initialOverview);
         }
 
-        List<AccessPromotionRequest> requests = promotionRepo.findByUsernameOrderByCreatedAtDesc(username);
+        List<AccessPromotionRequest> requests = promotionRepo.findByUsernameOrderByCreatedAtDesc(canonicalUsername);
 
         return UnifiedProfileResponseDTO.builder()
                 .username(user.getUsername())
