@@ -3,13 +3,10 @@ package com.kitchome.auth.util;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
-import io.jsonwebtoken.io.Decoders;
-import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
-import java.security.Key;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -18,10 +15,14 @@ import java.util.function.Function;
 
 @Component
 public class JwtUtil {
-    @Value("${jwt.secret}")
-    private String SECRET;
-    @Value("${jwt.expiration-ms}")
+    @Value("${jwt.expiration-ms:900000}")
     private long expieryDuration;
+
+    private final RsaKeyProvider rsaKeyProvider;
+
+    public JwtUtil(RsaKeyProvider rsaKeyProvider) {
+        this.rsaKeyProvider = rsaKeyProvider;
+    }
 
     public String extractUsername(String token) {
         return extractClaims(token, Claims::getSubject);
@@ -42,13 +43,12 @@ public class JwtUtil {
 
     public boolean isValid(String token, UserDetails user) {
         String userName = extractUsername(token);
-        return user.getUsername().equals(extractUsername(token)) && !isExpired(token);
-
+        return user.getUsername().equals(userName) && !isExpired(token);
     }
 
     private Claims extractAllClaims(String token) {
         return Jwts.parser()
-                .setSigningKey(getSigningkey())
+                .setSigningKey(rsaKeyProvider.getPublicKey())
                 .build()
                 .parseClaimsJws(token)
                 .getBody();
@@ -56,15 +56,31 @@ public class JwtUtil {
 
     private String createToken(Map<String, Object> claims, String username) {
         return Jwts.builder()
+                .setHeaderParam("kid", rsaKeyProvider.getKeyId())
                 .setClaims(claims)
                 .setSubject(username)
+                .setIssuer("kitchome-auth")
                 .setIssuedAt(new Date(System.currentTimeMillis()))
                 .setExpiration(new Date(System.currentTimeMillis() + expieryDuration))
-                .signWith(getSigningkey(), SignatureAlgorithm.HS256).compact();
+                .signWith(rsaKeyProvider.getPrivateKey(), SignatureAlgorithm.RS256)
+                .compact();
     }
 
     public String generateToken(String username) {
-        return generateToken(username, null, null);
+        return generateToken(username, null, "default", "free", List.of("USER"));
+    }
+
+    public String generateToken(String username, String email, String tenantId, String tier, List<String> roles) {
+        Map<String, Object> claims = new HashMap<>();
+        if (email != null) {
+            claims.put("email", email);
+        }
+        claims.put("tenant_id", tenantId != null ? tenantId : "default");
+        claims.put("tier", tier != null ? tier : "free");
+        if (roles != null && !roles.isEmpty()) {
+            claims.put("roles", roles);
+        }
+        return createToken(claims, username);
     }
 
     public String generateToken(String username, String agentId, List<String> scopes) {
@@ -75,15 +91,12 @@ public class JwtUtil {
         if (scopes != null && !scopes.isEmpty()) {
             claims.put("scopes", scopes);
         }
+        claims.put("tenant_id", "default");
+        claims.put("tier", "free");
         return createToken(claims, username);
     }
 
     public String GenerateTokenWithClaims(Map<String, Object> claims, String username) {
         return createToken(claims, username);
-    }
-
-    private Key getSigningkey() {
-        byte[] keyBytes = Decoders.BASE64.decode(SECRET);
-        return Keys.hmacShaKeyFor(keyBytes);
     }
 }

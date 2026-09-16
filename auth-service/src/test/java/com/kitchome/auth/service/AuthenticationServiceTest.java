@@ -32,6 +32,9 @@ class AuthenticationServiceTest {
     @Mock
     private RefreshTokenService refreshTokenService;
 
+    @Mock
+    private com.kitchome.auth.dao.UserRepositoryDao userRepositoryDao;
+
     @InjectMocks
     private AuthenticationService authenticationService;
 
@@ -56,7 +59,7 @@ class AuthenticationServiceTest {
         request.setRemoteAddr("127.0.0.1");
         request.addHeader("User-Agent", "Mozilla");
 
-        when(jwtUtil.generateToken("testuser")).thenReturn("mock-jwt-token");
+        when(jwtUtil.generateToken(eq("testuser"), any(), any(), any(), any())).thenReturn("mock-jwt-token");
 
         RefreshToken mockRefreshToken = new RefreshToken();
         mockRefreshToken.setToken("mock-refresh-token");

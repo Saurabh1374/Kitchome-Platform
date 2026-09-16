@@ -22,6 +22,7 @@ import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.session.SessionRegistry;
 import org.springframework.security.core.session.SessionRegistryImpl;
@@ -48,6 +49,7 @@ import org.springframework.security.web.session.SessionInformationExpiredStrateg
 @Configuration
 @RequiredArgsConstructor
 @EnableWebSecurity
+@EnableMethodSecurity
 public class SecurityConfig {
 	private final UserDetailsService userDetailsService;
 	private final JwtUtil jwtUtil;
@@ -65,10 +67,11 @@ public class SecurityConfig {
 				.sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 				.authorizeHttpRequests(
 						authz -> authz
-								// Allowed public endpoints (New + Legacy + Swagger)
+								// Allowed public endpoints (New + Legacy + Swagger + Actuator)
 								.requestMatchers("/api/v1/auth/**", "/login", "/register", "/static/**", "/error",
 										"/invalidSession", "/", "/verify-email", "/resend-verification",
 										"/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html",
+										"/actuator/**", "/.well-known/**",
 										"/*.png", "/*.svg", "/*.jpg", "/*.jpeg", "/*.ico", "/css/**", "/js/**", "/images/**")
 								.permitAll()
 								.requestMatchers("/api/v1/public", "/api/v1/users/register", "/api/v1/users/login",

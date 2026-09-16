@@ -19,4 +19,7 @@ public interface UserRepositoryDao extends JpaRepository<User, Long> {
 	Optional<User> findByUsername(String username);
 
 	Optional<User> findUserByEmailIgnoreCase(String email);
+
+	@org.springframework.data.jpa.repository.Query("SELECT COUNT(u) FROM User u JOIN u.roles r WHERE r = com.kitchome.auth.util.Role.ADMIN")
+	long countAdminUsers();
 }

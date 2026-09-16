@@ -35,7 +35,15 @@ public class User extends BaseEntity {
     @CollectionTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"))
     @Enumerated(EnumType.STRING)
     @Column(name = "role")
-    private Set<Role> roles = new HashSet<>();;
+    private Set<Role> roles = new HashSet<>();
+
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "organization_id")
+    private Organization organization;
+
+    @Column(name = "tier", columnDefinition = "varchar(255) default 'free'", nullable = true)
+    private String tier = "free";
+
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
     private List<RefreshToken> sessions;
 

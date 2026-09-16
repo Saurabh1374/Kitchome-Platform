@@ -120,6 +120,12 @@
 
     <script>
         document.addEventListener("DOMContentLoaded", function () {
+            const initialParams = new URLSearchParams(window.location.search);
+            const rUri = initialParams.get("redirect_uri");
+            if (rUri) {
+                const regLink = document.querySelector('a[href="/register"]');
+                if (regLink) regLink.href = `/register?redirect_uri=${encodeURIComponent(rUri)}`;
+            }
             // Auth state is now managed by cookies, backend will handle redirects for authenticated users accessing /login.
 
             const loginForm = document.getElementById("loginForm");
@@ -149,7 +155,15 @@
                     const data = await response.json();
 
                     if (response.ok) {
-                        window.location.href = "/dashboard";
+                        const urlParams = new URLSearchParams(window.location.search);
+                        const redirectUri = urlParams.get("redirect_uri");
+                        const token = (data.payload && data.payload.accessToken) ? data.payload.accessToken : (data.data && data.data.accessToken ? data.data.accessToken : "");
+                        if (redirectUri) {
+                            const separator = redirectUri.includes("?") ? "&" : "?";
+                            window.location.href = `${redirectUri}${separator}jwt=${encodeURIComponent(token)}`;
+                        } else {
+                            window.location.href = "/dashboard";
+                        }
                     } else {
                         let msg = "Authentication failed. Please check your credentials.";
                         if (response.status === 401) msg = "Invalid username or password";

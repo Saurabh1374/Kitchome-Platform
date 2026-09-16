@@ -20,6 +20,7 @@ import com.kitchome.auth.dao.VerificationTokenRepository;
 import com.kitchome.auth.entity.VerificationToken;
 import com.kitchome.auth.entity.User;
 
+@lombok.extern.slf4j.Slf4j
 @Service
 public class UserCredentials implements UserDetailsService {
 
@@ -82,21 +83,33 @@ public class UserCredentials implements UserDetailsService {
 		user.setUsername(userdto.getUsername());
 		user.setEmail(userdto.getEmail());
 		user.setPassword(encryptionStrategy.encode(userdto.getPassword()));
-		user.setRoles(Collections.singleton(Role.USER));
-		user.setEnabled(true);
-		user.setEmailVerified(false);
 
-		user = userRepo.save(user);
+		boolean isFirstAdmin = (userRepo.count() == 0 || userRepo.countAdminUsers() == 0);
+		if (isFirstAdmin) {
+			user.setRoles(java.util.Set.of(Role.ADMIN, Role.USER));
+			user.setTier("enterprise");
+			user.setEnabled(true);
+			user.setEmailVerified(true);
+			user = userRepo.save(user);
+			log.info("First-come preference: Registered {} as founding ADMIN with enterprise tier", user.getUsername());
+			return true;
+		} else {
+			user.setRoles(Collections.singleton(Role.USER));
+			user.setTier("free");
+			user.setEnabled(true);
+			user.setEmailVerified(false);
+			user = userRepo.save(user);
 
-		// 3. Generate verification token
-		String token = UUID.randomUUID().toString();
-		VerificationToken myToken = new VerificationToken(user, token);
-		tokenRepository.save(myToken);
+			// 3. Generate verification token
+			String token = UUID.randomUUID().toString();
+			VerificationToken myToken = new VerificationToken(user, token);
+			tokenRepository.save(myToken);
 
-		// 4. Send verification email async
-		emailService.sendVerificationEmail(user.getEmail(), token);
+			// 4. Send verification email async
+			emailService.sendVerificationEmail(user.getEmail(), token);
 
-		return true;
+			return true;
+		}
 	}
 
 	public void verifyUser(String token) {

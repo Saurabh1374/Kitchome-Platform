@@ -177,6 +177,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String path = request.getServletPath();
         String method = request.getMethod();
 
+        // Skip JWT filter for actuator health & metrics endpoints
+        if (path.startsWith("/actuator") || path.startsWith("/.well-known")) {
+            return true;
+        }
+
         // Skip JWT filter for refresh endpoint (Legacy & New)
         return ("/api/v1/users/refresh".equals(path) || "/api/v1/auth/refresh".equals(path))
                 && "POST".equalsIgnoreCase(method);

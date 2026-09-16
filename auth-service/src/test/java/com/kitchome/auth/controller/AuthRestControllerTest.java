@@ -147,7 +147,7 @@ class AuthRestControllerTest {
         token.setUser(user);
 
         when(refreshTokenService.validate("rtoken")).thenReturn(token);
-        when(jwtUtil.generateToken("user")).thenReturn("newAccess");
+        when(jwtUtil.generateToken(eq("user"), any(), any(), any(), any())).thenReturn("newAccess");
 
         RefreshToken newRefresh = new RefreshToken();
         newRefresh.setToken("newRefresh");

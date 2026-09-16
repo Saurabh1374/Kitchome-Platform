@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 
-<head th:replace="~{fragments :: head('Dashboard')}"></head>
+<head th:replace="~{fragments :: head('Unified Portal Dashboard')}"></head>
 
 <body style="background-color: var(--bg-darker);">
     <nav th:replace="~{fragments :: navbar}"></nav>
@@ -14,227 +14,879 @@
         <main style="flex: 1; display: flex; flex-direction: column; gap: 2rem;">
             <!-- Profile Hero -->
             <section class="glass animate-slide-up"
-                style="padding: 2.5rem; border-radius: 24px; display: flex; align-items: center; justify-content: space-between;">
+                style="padding: 2.5rem; border-radius: 24px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1.5rem;">
                 <div style="display: flex; align-items: center; gap: 1.5rem;">
                     <div
                         style="width: 80px; height: 80px; background: linear-gradient(135deg, var(--primary), var(--secondary)); border-radius: 20px; display: flex; align-items: center; justify-content: center; font-size: 2rem; font-weight: 700; color: white; box-shadow: var(--shadow-lg);">
                         <span id="user-initial">?</span>
                     </div>
                     <div>
-                        <h1 style="font-size: 1.75rem; font-weight: 700; margin-bottom: 0.25rem;">Welcome back, <span
-                                id="display-username" class="text-gradient">Loading...</span>!</h1>
-                        <p style="color: var(--text-muted); font-size: 1rem;">Here's an overview of your security &
-                            integrations.</p>
+                        <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 0.25rem;">
+                            <h1 style="font-size: 1.75rem; font-weight: 700; margin: 0;">Welcome, <span
+                                    id="display-username" class="text-gradient">Loading...</span>!</h1>
+                            <span id="tier-badge" class="badge"
+                                style="background: rgba(99, 102, 241, 0.15); border: 1px solid var(--primary-light); color: var(--primary-light); padding: 0.2rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;">
+                                FREE TIER
+                            </span>
+                            <span id="tenant-badge" class="badge"
+                                style="background: rgba(16, 185, 129, 0.15); border: 1px solid var(--success); color: var(--success); padding: 0.2rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 700;">
+                                Tenant: default
+                            </span>
+                        </div>
+                        <p id="user-email" style="color: var(--text-muted); font-size: 0.95rem; margin: 0;">email@domain.com</p>
                     </div>
                 </div>
                 <div style="text-align: right;">
-                    <p id="today-date" style="font-weight: 600; color: var(--text-main);"></p>
-                    <p style="font-size: 0.875rem; color: var(--text-dim);">Last login: 2 hours ago</p>
+                    <p id="today-date" style="font-weight: 600; color: var(--text-main); margin-bottom: 0.25rem;"></p>
+                    <span id="global-role-badge"
+                        style="background: rgba(236, 72, 153, 0.15); border: 1px solid var(--secondary); color: var(--secondary-light); padding: 0.25rem 0.8rem; border-radius: 8px; font-size: 0.8rem; font-weight: 600;">
+                        Role: USER
+                    </span>
                 </div>
             </section>
 
-            <!-- Stats Grid -->
-            <section style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.5rem;"
-                class="animate-slide-up">
-                <div class="glass" style="padding: 1.5rem; border-radius: 20px;">
-                    <div
-                        style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;">
-                        <span style="color: var(--text-muted); font-size: 0.875rem; font-weight: 600;">ACTIVE
-                            INTEGRATIONS</span>
-                        <div
-                            style="color: var(--primary-light); background: rgba(99, 102, 241, 0.1); padding: 0.5rem; border-radius: 10px;">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2">
-                                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
-                            </svg>
-                        </div>
+            <!-- Quick Service Access & Dynamic Launcher Grid -->
+            <section id="services-section" class="animate-slide-up">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;">
+                    <div>
+                        <h2 style="font-size: 1.35rem; font-weight: 700; margin: 0;">Service Access & Operations</h2>
+                        <p style="color: var(--text-muted); font-size: 0.875rem; margin-top: 0.25rem;">
+                            Coarse-grained application-level role & fine-grained service access privileges.
+                        </p>
                     </div>
-                    <p id="integration-count" style="font-size: 2rem; font-weight: 700;">0</p>
-                    <p style="font-size: 0.75rem; color: var(--success); margin-top: 0.5rem; font-weight: 600;">↑ 2
-                        since last month</p>
+                    <button onclick="openPromotionModal()" class="btn btn-primary" style="font-size: 0.875rem;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                        Request Access Elevation
+                    </button>
                 </div>
 
-                <div class="glass" style="padding: 1.5rem; border-radius: 20px;">
-                    <div
-                        style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;">
-                        <span style="color: var(--text-muted); font-size: 0.875rem; font-weight: 600;">SECURITY
-                            STATUS</span>
-                        <div
-                            style="color: var(--success); background: rgba(16, 185, 129, 0.1); padding: 0.5rem; border-radius: 10px;">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2">
-                                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                            </svg>
-                        </div>
-                    </div>
-                    <p style="font-size: 2rem; font-weight: 700;">Optimal</p>
-                    <p style="font-size: 0.75rem; color: var(--text-dim); margin-top: 0.5rem; font-weight: 600;">2FA
-                        Enabled</p>
-                </div>
-
-                <div class="glass" style="padding: 1.5rem; border-radius: 20px;">
-                    <div
-                        style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;">
-                        <span style="color: var(--text-muted); font-size: 0.875rem; font-weight: 600;">ACCOUNT
-                            ROLE</span>
-                        <div
-                            style="color: var(--secondary-light); background: rgba(236, 72, 153, 0.1); padding: 0.5rem; border-radius: 10px;">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2">
-                                <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                                <circle cx="8.5" cy="7" r="4" />
-                                <line x1="20" y1="8" x2="20" y2="14" />
-                                <line x1="23" y1="11" x2="17" y2="11" />
-                            </svg>
-                        </div>
-                    </div>
-                    <p id="user-role" style="font-size: 2rem; font-weight: 700;">User</p>
-                    <p style="font-size: 0.75rem; color: var(--text-dim); margin-top: 0.5rem; font-weight: 600;">Pro
-                        Plan</p>
-                </div>
-            </section>
-
-            <!-- Insights Grid -->
-            <section style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem;" class="animate-slide-up">
-                <div class="glass" style="padding: 1.5rem; border-radius: 20px; background: linear-gradient(135deg, rgba(99, 102, 241, 0.05), rgba(168, 85, 247, 0.05));">
-                    <h4 style="font-size: 0.875rem; color: var(--text-muted); margin-bottom: 1rem;">INTEGRATION HEALTH</h4>
-                    <div style="display: flex; gap: 1rem; align-items: flex-end;">
-                        <div style="flex: 1; height: 40px; background: var(--success); opacity: 0.3; border-radius: 4px;"></div>
-                        <div style="flex: 1; height: 60px; background: var(--success); opacity: 0.5; border-radius: 4px;"></div>
-                        <div style="flex: 1; height: 30px; background: var(--success); opacity: 0.4; border-radius: 4px;"></div>
-                        <div style="flex: 1; height: 80px; background: var(--success); border-radius: 4px;"></div>
-                        <div style="flex: 1; height: 70px; background: var(--success); opacity: 0.8; border-radius: 4px;"></div>
-                    </div>
-                    <p style="font-size: 0.75rem; color: var(--text-dim); margin-top: 1rem;">Uptime: 99.9% (Last 7 days)</p>
-                </div>
-
-                <div class="glass" style="padding: 1.5rem; border-radius: 20px;">
-                    <h4 style="font-size: 0.875rem; color: var(--text-muted); margin-bottom: 1rem;">SECURITY INSIGHTS</h4>
-                    <div style="display: flex; align-items: center; gap: 1rem;">
-                        <div style="flex: 1;">
-                            <p style="font-size: 1.25rem; font-weight: 700;">No Threats</p>
-                            <p style="font-size: 0.75rem; color: var(--success);">System secure</p>
-                        </div>
-                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2" style="opacity: 0.5;"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>
+                <!-- Dynamic Service Cards Container -->
+                <div id="service-cards-container" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 1.5rem;">
+                    <!-- Loading state placeholder -->
+                    <div class="glass" style="padding: 2rem; border-radius: 20px; text-align: center; color: var(--text-muted);">
+                        Loading service access directory...
                     </div>
                 </div>
             </section>
 
-            <!-- Lower Grid -->
-            <section style="display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem;" class="animate-slide-up">
-                <!-- Recent Activity -->
-                <div class="glass" style="padding: 2rem; border-radius: 24px;">
-                    <h3
-                        style="font-size: 1.25rem; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.75rem;">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                            stroke-width="2">
-                            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
-                        </svg>
-                        Recent Activity
-                    </h3>
-                    <div style="display: flex; flex-direction: column; gap: 1rem;">
-                        <div
-                            style="padding: 1rem; border-radius: 12px; background: rgba(255,255,255,0.02); display: flex; justify-content: space-between; align-items: center;">
-                            <div>
-                                <p style="font-weight: 600; font-size: 0.9375rem;">Connected HubSpot CRM</p>
-                                <p style="font-size: 0.8125rem; color: var(--text-dim);">Authorization successful</p>
-                            </div>
-                            <span style="font-size: 0.75rem; color: var(--text-dim);">12 mins ago</span>
-                        </div>
-                        <div
-                            style="padding: 1rem; border-radius: 12px; background: rgba(255,255,255,0.02); display: flex; justify-content: space-between; align-items: center;">
-                            <div>
-                                <p style="font-weight: 600; font-size: 0.9375rem;">Email Verified</p>
-                                <p style="font-size: 0.8125rem; color: var(--text-dim);">Identity confirmed</p>
-                            </div>
-                            <span style="font-size: 0.75rem; color: var(--text-dim);">1 hour ago</span>
-                        </div>
-                        <div
-                            style="padding: 1rem; border-radius: 12px; background: rgba(255,255,255,0.02); display: flex; justify-content: space-between; align-items: center;">
-                            <div>
-                                <p style="font-weight: 600; font-size: 0.9375rem;">Login from new device</p>
-                                <p style="font-size: 0.8125rem; color: var(--text-dim);">MacBook Pro (Chrome)</p>
-                            </div>
-                            <span style="font-size: 0.75rem; color: var(--text-dim);">2 hours ago</span>
-                        </div>
+            <!-- User Elevation History Section -->
+            <section id="promotions-section" class="glass animate-slide-up" style="padding: 2rem; border-radius: 24px;">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem;">
+                    <div>
+                        <h3 style="font-size: 1.25rem; font-weight: 700; margin: 0;">My Elevation Requests</h3>
+                        <p style="color: var(--text-muted); font-size: 0.875rem; margin-top: 0.25rem;">
+                            Status of requests submitted to escalate clearances or functional scopes.
+                        </p>
                     </div>
                 </div>
 
-                <!-- Quick Actions -->
-                <div class="glass"
-                    style="padding: 2rem; border-radius: 24px; display: flex; flex-direction: column; gap: 1rem;">
-                    <h3 style="font-size: 1.25rem; margin-bottom: 0.5rem;">Quick Actions</h3>
-                    <button onclick="window.location.href='/integrations'" class="btn btn-primary"
-                        style="width: 100%; justify-content: flex-start;">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                            stroke-width="2">
-                            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
-                        </svg>
-                        Add Integration
-                    </button>
-                    <button class="btn btn-outline" style="width: 100%; justify-content: flex-start;">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                            stroke-width="2">
-                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                        </svg>
-                        Security Audit
-                    </button>
-                    <button onclick="logout()" class="btn btn-outline"
-                        style="width: 100%; justify-content: flex-start; color: var(--danger); border-color: rgba(239, 68, 68, 0.2);">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                            stroke-width="2">
-                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                            <polyline points="16 17 21 12 16 7" />
-                            <line x1="21" y1="12" x2="9" y2="12" />
-                        </svg>
-                        Logout
-                    </button>
+                <div style="overflow-x: auto;">
+                    <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem;">
+                        <thead>
+                            <tr style="border-bottom: 1px solid var(--glass-border); color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase;">
+                                <th style="padding: 0.75rem 1rem;">Service</th>
+                                <th style="padding: 0.75rem 1rem;">Requested Clearance</th>
+                                <th style="padding: 0.75rem 1rem;">Requested Scopes</th>
+                                <th style="padding: 0.75rem 1rem;">Justification</th>
+                                <th style="padding: 0.75rem 1rem;">Status</th>
+                                <th style="padding: 0.75rem 1rem;">Reviewer / Reason</th>
+                            </tr>
+                        </thead>
+                        <tbody id="user-requests-table-body">
+                            <tr>
+                                <td colspan="6" style="padding: 1.5rem 1rem; text-align: center; color: var(--text-dim);">
+                                    No elevation requests found.
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Admin Section: Organization & Tenant Management (Admins Only) -->
+            <section id="admin-org-section" class="glass animate-slide-up" style="padding: 2rem; border-radius: 24px; display: none;">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+                    <div>
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <h3 style="font-size: 1.25rem; font-weight: 700; margin: 0;">Tenant Organizations (Admin CRUD)</h3>
+                            <span class="badge" style="background: rgba(239, 68, 68, 0.2); color: var(--danger); font-size: 0.7rem; padding: 2px 8px; border-radius: 6px; font-weight: 700;">ADMIN ONLY</span>
+                        </div>
+                        <p style="color: var(--text-muted); font-size: 0.875rem; margin-top: 0.25rem;">
+                            Manage organizations acting as canonical tenant specifiers (`tenant_id`).
+                        </p>
+                    </div>
+                    <div style="display: flex; gap: 0.75rem;">
+                        <button onclick="openCreateOrgModal()" class="btn btn-primary" style="font-size: 0.85rem; padding: 0.5rem 1rem;">
+                            + New Organization
+                        </button>
+                        <button onclick="openAssignUserModal()" class="btn btn-outline" style="font-size: 0.85rem; padding: 0.5rem 1rem;">
+                            Assign User to Org
+                        </button>
+                    </div>
+                </div>
+
+                <div style="overflow-x: auto;">
+                    <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem;">
+                        <thead>
+                            <tr style="border-bottom: 1px solid var(--glass-border); color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase;">
+                                <th style="padding: 0.75rem 1rem;">ID</th>
+                                <th style="padding: 0.75rem 1rem;">Tenant Code</th>
+                                <th style="padding: 0.75rem 1rem;">Organization Name</th>
+                                <th style="padding: 0.75rem 1rem;">Description</th>
+                                <th style="padding: 0.75rem 1rem;">Status</th>
+                                <th style="padding: 0.75rem 1rem;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="orgs-table-body">
+                            <tr>
+                                <td colspan="6" style="padding: 1.5rem 1rem; text-align: center; color: var(--text-dim);">
+                                    Loading organizations...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Admin Section: Pending Access Promotion Approvals (Admins Only) -->
+            <section id="admin-approvals-section" class="glass animate-slide-up" style="padding: 2rem; border-radius: 24px; display: none;">
+                <div style="margin-bottom: 1.5rem;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <h3 style="font-size: 1.25rem; font-weight: 700; margin: 0;">Pending Promotion Requests</h3>
+                        <span id="pending-count-badge" class="badge" style="background: rgba(245, 158, 11, 0.2); color: var(--warning); font-size: 0.75rem; padding: 2px 8px; border-radius: 6px; font-weight: 700;">0 PENDING</span>
+                    </div>
+                    <p style="color: var(--text-muted); font-size: 0.875rem; margin-top: 0.25rem;">
+                        Approving dispatches authenticated API calls to respective downstream services and updates local tables.
+                    </p>
+                </div>
+
+                <div style="overflow-x: auto;">
+                    <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem;">
+                        <thead>
+                            <tr style="border-bottom: 1px solid var(--glass-border); color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase;">
+                                <th style="padding: 0.75rem 1rem;">User</th>
+                                <th style="padding: 0.75rem 1rem;">Tenant</th>
+                                <th style="padding: 0.75rem 1rem;">Service</th>
+                                <th style="padding: 0.75rem 1rem;">Target Clearance</th>
+                                <th style="padding: 0.75rem 1rem;">Target Scopes</th>
+                                <th style="padding: 0.75rem 1rem;">Justification</th>
+                                <th style="padding: 0.75rem 1rem;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="admin-pending-table-body">
+                            <tr>
+                                <td colspan="7" style="padding: 1.5rem 1rem; text-align: center; color: var(--text-dim);">
+                                    No pending approvals.
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
             </section>
         </main>
     </div>
 
+    <!-- Modal: Request Access Elevation -->
+    <div id="elevation-modal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(8px); z-index: 200; align-items: center; justify-content: center;">
+        <div class="glass" style="background: var(--bg-dark); border-radius: 24px; padding: 2.5rem; width: 100%; max-width: 520px; box-shadow: var(--shadow-xl);">
+            <h3 style="font-size: 1.35rem; font-weight: 700; margin-bottom: 0.5rem;">Request Access Elevation</h3>
+            <p style="color: var(--text-muted); font-size: 0.875rem; margin-bottom: 1.5rem;">
+                Submit an elevation request. Once approved by an Administrator, your permissions will be synchronized downstream.
+            </p>
+
+            <form id="elevation-form">
+                <div class="input-group">
+                    <label class="input-label">Target Service</label>
+                    <select id="elev-service" class="auth-input" style="background: rgba(255,255,255,0.05);">
+                        <option value="kitchome-rag" style="background: var(--bg-dark);">Kitchome RAG Service</option>
+                    </select>
+                </div>
+
+                <div class="input-group">
+                    <label class="input-label">Desired Clearance Level</label>
+                    <select id="elev-clearance" class="auth-input" style="background: rgba(255,255,255,0.05);">
+                        <option value="1" style="background: var(--bg-dark);">Level 1 - Public</option>
+                        <option value="2" style="background: var(--bg-dark);">Level 2 - Internal Confidential</option>
+                        <option value="3" style="background: var(--bg-dark);">Level 3 - Secret / Restricted</option>
+                    </select>
+                </div>
+
+                <div class="input-group">
+                    <label class="input-label">Requested Functional Scopes</label>
+                    <div style="display: flex; flex-direction: column; gap: 0.5rem; padding: 0.5rem 0;">
+                        <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; cursor: pointer;">
+                            <input type="checkbox" name="elev-scope" value="rag:read" checked>
+                            <span><code>rag:read</code> (Query knowledge base)</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; cursor: pointer;">
+                            <input type="checkbox" name="elev-scope" value="ingestion:write">
+                            <span><code>ingestion:write</code> (Upload & index documents)</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; cursor: pointer;">
+                            <input type="checkbox" name="elev-scope" value="admin:manage">
+                            <span><code>admin:manage</code> (Tenant governance)</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label class="input-label">Business Justification</label>
+                    <textarea id="elev-justification" class="auth-input" rows="3" placeholder="Explain why elevated access is required..." required style="resize: vertical;"></textarea>
+                </div>
+
+                <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 1.5rem;">
+                    <button type="button" onclick="closePromotionModal()" class="btn btn-outline" style="padding: 0.6rem 1.25rem;">Cancel</button>
+                    <button type="submit" class="btn btn-primary" style="padding: 0.6rem 1.25rem;">Submit Request</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Create Organization (Admin) -->
+    <div id="create-org-modal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(8px); z-index: 200; align-items: center; justify-content: center;">
+        <div class="glass" style="background: var(--bg-dark); border-radius: 24px; padding: 2.5rem; width: 100%; max-width: 480px; box-shadow: var(--shadow-xl);">
+            <h3 style="font-size: 1.35rem; font-weight: 700; margin-bottom: 0.5rem;">Create Organization (Tenant)</h3>
+            <p style="color: var(--text-muted); font-size: 0.875rem; margin-bottom: 1.5rem;">
+                Each organization defines a canonical tenant partition (`tenant_id`).
+            </p>
+
+            <form id="create-org-form">
+                <div class="input-group">
+                    <label class="input-label">Organization Name</label>
+                    <input type="text" id="org-name" class="auth-input" placeholder="e.g. Acme Culinary Labs" required>
+                </div>
+                <div class="input-group">
+                    <label class="input-label">Tenant Code (Unique Slug)</label>
+                    <input type="text" id="org-code" class="auth-input" placeholder="e.g. acme_corp" required pattern="[a-zA-Z0-9_-]+">
+                </div>
+                <div class="input-group">
+                    <label class="input-label">Description</label>
+                    <textarea id="org-desc" class="auth-input" rows="2" placeholder="Brief organization summary..."></textarea>
+                </div>
+
+                <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 1.5rem;">
+                    <button type="button" onclick="closeCreateOrgModal()" class="btn btn-outline" style="padding: 0.6rem 1.25rem;">Cancel</button>
+                    <button type="submit" class="btn btn-primary" style="padding: 0.6rem 1.25rem;">Create Organization</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Assign User to Org (Admin) -->
+    <div id="assign-user-modal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(8px); z-index: 200; align-items: center; justify-content: center;">
+        <div class="glass" style="background: var(--bg-dark); border-radius: 24px; padding: 2.5rem; width: 100%; max-width: 450px; box-shadow: var(--shadow-xl);">
+            <h3 style="font-size: 1.35rem; font-weight: 700; margin-bottom: 0.5rem;">Assign Member to Tenant</h3>
+            <p style="color: var(--text-muted); font-size: 0.875rem; margin-bottom: 1.5rem;">
+                Assign a user to an organization to scope their downstream tenant boundaries.
+            </p>
+
+            <form id="assign-user-form">
+                <div class="input-group">
+                    <label class="input-label">Username</label>
+                    <input type="text" id="assign-username" class="auth-input" placeholder="e.g. chef_john" required>
+                </div>
+                <div class="input-group">
+                    <label class="input-label">Target Organization Tenant Code</label>
+                    <input type="text" id="assign-org-code" class="auth-input" placeholder="e.g. acme_corp" required>
+                </div>
+
+                <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 1.5rem;">
+                    <button type="button" onclick="closeAssignUserModal()" class="btn btn-outline" style="padding: 0.6rem 1.25rem;">Cancel</button>
+                    <button type="submit" class="btn btn-primary" style="padding: 0.6rem 1.25rem;">Assign Member</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Document Ingestion & History Studio -->
+    <div id="ingestion-history-modal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(8px); z-index: 200; align-items: center; justify-content: center;">
+        <div class="glass" style="background: var(--bg-dark); border-radius: 24px; padding: 2.5rem; width: 100%; max-width: 800px; max-height: 85vh; overflow-y: auto; box-shadow: var(--shadow-xl);">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem;">
+                <div>
+                    <h3 style="font-size: 1.35rem; font-weight: 700; margin: 0;">Document Ingestion & History Studio</h3>
+                    <p style="color: var(--text-muted); font-size: 0.875rem; margin-top: 0.25rem;">
+                        View your personal ingestion history, check indexing statuses, and manually retry failed tasks.
+                    </p>
+                </div>
+                <button type="button" onclick="closeIngestionModal()" class="btn btn-outline" style="padding: 0.35rem 0.75rem; font-size: 0.8rem;">✕ Close</button>
+            </div>
+
+            <!-- Ingest Quick Form Toggle -->
+            <details style="margin-bottom: 1.5rem; background: rgba(255,255,255,0.02); border: 1px solid var(--glass-border); border-radius: 12px; padding: 1rem;">
+                <summary style="font-weight: 600; cursor: pointer; color: var(--primary-light);">+ Ingest New Document into Kitchome RAG</summary>
+                <form id="quick-ingest-form" style="margin-top: 1rem;">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div class="input-group">
+                            <label class="input-label">Document ID</label>
+                            <input type="text" id="modal-doc-id" class="auth-input" placeholder="e.g. recipe_creme_brulee" required>
+                        </div>
+                        <div class="input-group">
+                            <label class="input-label">Document Title</label>
+                            <input type="text" id="modal-doc-title" class="auth-input" placeholder="e.g. Classic Vanilla Creme Brulee" required>
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <label class="input-label">Content / Markdown</label>
+                        <textarea id="modal-doc-content" class="auth-input" rows="3" placeholder="Enter culinary content..." required></textarea>
+                    </div>
+                    <div style="display: flex; justify-content: flex-end;">
+                        <button type="submit" class="btn btn-primary" style="font-size: 0.85rem; padding: 0.5rem 1.25rem;">Submit Ingestion</button>
+                    </div>
+                </form>
+            </details>
+
+            <!-- Ingestion History Table -->
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem;">
+                <h4 style="font-size: 1.05rem; font-weight: 600; margin: 0;">Your Ingestion Ledger</h4>
+                <div style="display: flex; gap: 0.5rem;">
+                    <a href="http://localhost:8501" target="_blank" style="font-size: 0.8rem; color: var(--secondary-light); text-decoration: underline; margin-top: 4px;">
+                        Open Streamlit Studio ↗
+                    </a>
+                    <button onclick="loadModalIngestionHistory()" class="btn btn-outline" style="padding: 0.25rem 0.6rem; font-size: 0.75rem;">🔄 Refresh</button>
+                </div>
+            </div>
+
+            <div style="overflow-x: auto;">
+                <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.85rem;">
+                    <thead>
+                        <tr style="border-bottom: 1px solid var(--glass-border); color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase;">
+                            <th style="padding: 0.5rem 0.75rem;">Document</th>
+                            <th style="padding: 0.5rem 0.75rem;">Status</th>
+                            <th style="padding: 0.5rem 0.75rem;">Chunks</th>
+                            <th style="padding: 0.5rem 0.75rem;">Retries</th>
+                            <th style="padding: 0.5rem 0.75rem;">Date</th>
+                            <th style="padding: 0.5rem 0.75rem;">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="modal-ingestion-table-body">
+                        <tr>
+                            <td colspan="6" style="padding: 1.5rem 0.75rem; text-align: center; color: var(--text-dim);">
+                                Loading ingestion history...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
     <footer th:replace="~{fragments :: footer}"></footer>
 
     <script>
+        let currentUserProfile = null;
+        let isAdminUser = false;
+
         $(document).ready(function () {
             // Set current date
-            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            const options = { weekday: "long", year: "numeric", month: "long", day: "numeric" };
             $("#today-date").text(new Date().toLocaleDateString(undefined, options));
 
-            // Fetch User Data
+            // Load Unified Profile & Access Overview
+            loadUnifiedProfile();
+
+            // Elevation Request Form Submit
+            $("#elevation-form").on("submit", function (e) {
+                e.preventDefault();
+                submitPromotionRequest();
+            });
+
+            // Create Org Form Submit
+            $("#create-org-form").on("submit", function (e) {
+                e.preventDefault();
+                submitCreateOrg();
+            });
+
+            // Assign User Form Submit
+            $("#assign-user-form").on("submit", function (e) {
+                e.preventDefault();
+                submitAssignUser();
+            });
+        });
+
+        function loadUnifiedProfile() {
             $.ajax({
-                url: "/api/v1/auth/me",
+                url: "/api/v1/promotions/profile-overview",
                 method: "GET",
                 success: function (response) {
                     if (response.payload) {
-                        const user = response.payload;
-                        let displayName = user.username.split('@')[0];
-                        $("#display-username").text(displayName);
-                        $("#user-initial").text(displayName.charAt(0).toUpperCase());
-                        $("#user-role").text(user.roles ? user.roles.replace('ROLE_', '') : 'User');
-                    }
+                        currentUserProfile = response.payload;
+                        renderProfile(currentUserProfile);
+                        renderServiceCards(currentUserProfile.serviceAccess || []);
+                        renderUserRequests(currentUserProfile.pendingRequests || []);
 
-                    // Fetch Integrations Count
-                    fetchIntegrationsCount();
+                        isAdminUser = (currentUserProfile.roles && currentUserProfile.roles.includes("ADMIN"));
+                        if (isAdminUser) {
+                            $("#admin-org-section").show();
+                            $("#admin-approvals-section").show();
+                            $("#nav-admin-orgs").show();
+                            loadOrganizations();
+                            loadAdminPendingApprovals();
+                        }
+                    }
                 },
                 error: function (xhr) {
-                    if (xhr.status === 401) logout();
+                    if (xhr.status === 401) {
+                        window.location.href = "/login";
+                    }
+                }
+            });
+        }
+
+        function renderProfile(user) {
+            let displayName = user.username ? user.username.split("@")[0] : "User";
+            $("#display-username").text(displayName);
+            $("#user-initial").text(displayName.charAt(0).toUpperCase());
+            $("#user-email").text(user.email || "No email on record");
+
+            let tierName = (user.tier || "FREE").toUpperCase();
+            $("#tier-badge").text(tierName + " TIER");
+            if (tierName === "ENTERPRISE") {
+                $("#tier-badge").css({ background: "rgba(236,72,153,0.15)", borderColor: "var(--secondary)", color: "var(--secondary-light)" });
+            } else if (tierName === "PREMIUM" || tierName === "SCHOLAR") {
+                $("#tier-badge").css({ background: "rgba(99,102,241,0.15)", borderColor: "var(--primary)", color: "var(--primary-light)" });
+            }
+
+            let tenantName = user.organizationName ? (user.organizationName + " (" + user.tenantId + ")") : ("Tenant: " + (user.tenantId || "default"));
+            $("#tenant-badge").text(tenantName);
+
+            let roleStr = user.roles ? user.roles : "ROLE_USER";
+            $("#global-role-badge").text("Role: " + roleStr.replace("ROLE_", ""));
+        }
+
+        function renderServiceCards(services) {
+            const container = $("#service-cards-container");
+            container.empty();
+
+            if (!services || services.length === 0) {
+                container.html('<div class="glass" style="padding: 2rem; border-radius: 20px; text-align: center; color: var(--text-dim); grid-column: 1 / -1;">No service access entries registered in look-up table.</div>');
+                return;
+            }
+
+            services.forEach(svc => {
+                const isApproved = svc.status === "APPROVED";
+                const clearance = svc.clearanceLevel || 1;
+                const scopes = svc.grantedScopes ? svc.grantedScopes.split(",") : [];
+
+                const hasRead = scopes.includes("rag:read") || scopes.includes("*");
+                const hasIngest = scopes.includes("ingestion:write") || scopes.includes("*");
+                const hasAdmin = scopes.includes("admin:manage") || scopes.includes("*") || isAdminUser;
+
+                let clearanceLabel = "Level " + clearance + " (Public)";
+                let clearanceColor = "var(--text-muted)";
+                if (clearance === 2) {
+                    clearanceLabel = "Level 2 (Internal)";
+                    clearanceColor = "var(--warning)";
+                } else if (clearance >= 3) {
+                    clearanceLabel = "Level 3 (Confidential)";
+                    clearanceColor = "var(--danger)";
+                }
+
+                let cardHtml = `
+                <div class="glass" style="padding: 1.75rem; border-radius: 20px; display: flex; flex-direction: column; justify-content: space-between; border-left: 4px solid ${isApproved ? "var(--success)" : "var(--warning)"};">
+                    <div>
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;">
+                            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                <div style="width: 42px; height: 42px; background: rgba(99, 102, 241, 0.1); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: var(--primary-light);">
+                                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                                        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h4 style="font-size: 1.15rem; font-weight: 700; margin: 0;">${svc.serviceId || "kitchome-rag"}</h4>
+                                    <p style="font-size: 0.75rem; color: var(--text-dim); margin: 0;">Role: ${svc.serviceRole || "member"}</p>
+                                </div>
+                            </div>
+                            <span class="badge" style="background: ${isApproved ? "rgba(16,185,129,0.15)" : "rgba(245,158,11,0.15)"}; color: ${isApproved ? "var(--success)" : "var(--warning)"}; padding: 0.2rem 0.6rem; border-radius: 6px; font-size: 0.75rem; font-weight: 700;">
+                                ${svc.status}
+                            </span>
+                        </div>
+
+                        <div style="background: rgba(255,255,255,0.02); padding: 1rem; border-radius: 12px; margin-bottom: 1.25rem;">
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem; font-size: 0.85rem;">
+                                <span style="color: var(--text-muted);">Clearance Level:</span>
+                                <span style="font-weight: 700; color: ${clearanceColor};">${clearanceLabel}</span>
+                            </div>
+                            <div style="font-size: 0.85rem;">
+                                <span style="color: var(--text-muted); display: block; margin-bottom: 0.35rem;">Active Functional Scopes:</span>
+                                <div style="display: flex; flex-wrap: wrap; gap: 0.35rem;">
+                                    ${scopes.map(s => `<span style="background: rgba(255,255,255,0.06); padding: 0.15rem 0.5rem; border-radius: 4px; font-family: monospace; font-size: 0.75rem;">${s}</span>`).join("")}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Dynamic Action Buttons -->
+                    <div style="display: flex; flex-direction: column; gap: 0.6rem; margin-top: 1rem; border-top: 1px solid var(--glass-border); padding-top: 1rem;">
+                        <button onclick="launchRagQuery()" class="btn ${hasRead ? "btn-primary" : "btn-outline"}" style="width: 100%; font-size: 0.85rem; padding: 0.6rem;" ${hasRead ? "" : "disabled"}>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                            ${hasRead ? "🔍 Launch Knowledge Query" : "🔒 Query Locked (Requires rag:read)"}
+                        </button>
+
+                        <button onclick="launchIngestion()" class="btn btn-outline" style="width: 100%; font-size: 0.85rem; padding: 0.6rem; ${hasIngest ? "border-color: var(--primary-light); color: var(--primary-light);" : ""}" ${hasIngest ? "" : "disabled"}>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                            ${hasIngest ? "📥 Document Ingestion Studio" : "🔒 Ingestion Locked (Requires ingestion:write)"}
+                        </button>
+
+                        ${!hasIngest || clearance < 3 ? `
+                        <button onclick="openPromotionModal()" style="background: none; border: none; color: var(--secondary-light); font-size: 0.78rem; text-align: center; cursor: pointer; text-decoration: underline; margin-top: 0.25rem;">
+                            Need higher clearance or scopes? Request Promotion →
+                        </button>` : ""}
+                    </div>
+                </div>`;
+                container.append(cardHtml);
+            });
+        }
+
+        function renderUserRequests(requests) {
+            const tbody = $("#user-requests-table-body");
+            tbody.empty();
+
+            if (!requests || requests.length === 0) {
+                tbody.html('<tr><td colspan="6" style="padding: 1.5rem 1rem; text-align: center; color: var(--text-dim);">No elevation requests found.</td></tr>');
+                return;
+            }
+
+            requests.forEach(r => {
+                let statusColor = "var(--warning)";
+                if (r.status === "APPROVED") statusColor = "var(--success)";
+                if (r.status === "REJECTED") statusColor = "var(--danger)";
+
+                let reviewerText = "-";
+                if (r.reviewedBy) {
+                    reviewerText = r.reviewedBy + (r.rejectionReason ? (" (" + r.rejectionReason + ")") : "");
+                }
+
+                let row = `
+                <tr style="border-bottom: 1px solid rgba(255,255,255,0.03);">
+                    <td style="padding: 0.85rem 1rem; font-weight: 600;">${r.serviceId}</td>
+                    <td style="padding: 0.85rem 1rem;">Level ${r.requestedClearance}</td>
+                    <td style="padding: 0.85rem 1rem;"><code style="font-size: 0.8rem;">${r.requestedScopes}</code></td>
+                    <td style="padding: 0.85rem 1rem; color: var(--text-muted); max-width: 250px;">${r.justification || "-"}</td>
+                    <td style="padding: 0.85rem 1rem;">
+                        <span style="color: ${statusColor}; font-weight: 700; font-size: 0.8rem; background: rgba(255,255,255,0.03); padding: 0.2rem 0.5rem; border-radius: 4px;">
+                            ${r.status}
+                        </span>
+                    </td>
+                    <td style="padding: 0.85rem 1rem; color: var(--text-dim); font-size: 0.85rem;">${reviewerText}</td>
+                </tr>`;
+                tbody.append(row);
+            });
+        }
+
+        function loadOrganizations() {
+            $.ajax({
+                url: "/api/v1/admin/organizations",
+                method: "GET",
+                success: function (res) {
+                    const tbody = $("#orgs-table-body");
+                    tbody.empty();
+                    if (!res.payload || res.payload.length === 0) {
+                        tbody.html('<tr><td colspan="6" style="padding: 1.5rem 1rem; text-align: center; color: var(--text-dim);">No organizations registered.</td></tr>');
+                        return;
+                    }
+                    res.payload.forEach(org => {
+                        let row = `
+                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.03);">
+                            <td style="padding: 0.85rem 1rem; color: var(--text-dim);">${org.id}</td>
+                            <td style="padding: 0.85rem 1rem;"><code style="color: var(--primary-light);">${org.code}</code></td>
+                            <td style="padding: 0.85rem 1rem; font-weight: 600;">${org.name}</td>
+                            <td style="padding: 0.85rem 1rem; color: var(--text-muted); max-width: 200px;">${org.description || "-"}</td>
+                            <td style="padding: 0.85rem 1rem;">
+                                <span style="color: ${org.active ? "var(--success)" : "var(--danger)"}; font-weight: 600; font-size: 0.8rem;">
+                                    ${org.active ? "ACTIVE" : "INACTIVE"}
+                                </span>
+                            </td>
+                            <td style="padding: 0.85rem 1rem;">
+                                <button onclick="deactivateOrg(${org.id})" class="btn btn-outline" style="padding: 0.25rem 0.6rem; font-size: 0.75rem; color: var(--danger); border-color: rgba(239,68,68,0.3);">
+                                    Deactivate
+                                </button>
+                            </td>
+                        </tr>`;
+                        tbody.append(row);
+                    });
+                }
+            });
+        }
+
+        function loadAdminPendingApprovals() {
+            $.ajax({
+                url: "/api/v1/promotions/admin/pending",
+                method: "GET",
+                success: function (res) {
+                    const tbody = $("#admin-pending-table-body");
+                    tbody.empty();
+                    const pendingList = res.payload || [];
+                    $("#pending-count-badge").text(pendingList.length + " PENDING");
+
+                    if (pendingList.length === 0) {
+                        tbody.html('<tr><td colspan="7" style="padding: 1.5rem 1rem; text-align: center; color: var(--text-dim);">No pending promotion requests.</td></tr>');
+                        return;
+                    }
+
+                    pendingList.forEach(req => {
+                        let row = `
+                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.03);">
+                            <td style="padding: 0.85rem 1rem; font-weight: 600;">${req.username}</td>
+                            <td style="padding: 0.85rem 1rem;"><code style="color: var(--primary-light);">${req.tenantId || "default"}</code></td>
+                            <td style="padding: 0.85rem 1rem;">${req.serviceId}</td>
+                            <td style="padding: 0.85rem 1rem;">Level ${req.requestedClearance}</td>
+                            <td style="padding: 0.85rem 1rem;"><code style="font-size: 0.8rem;">${req.requestedScopes}</code></td>
+                            <td style="padding: 0.85rem 1rem; color: var(--text-muted); max-width: 250px;">${req.justification || "-"}</td>
+                            <td style="padding: 0.85rem 1rem;">
+                                <div style="display: flex; gap: 0.5rem;">
+                                    <button onclick="reviewPromotion(${req.id}, true)" class="btn btn-primary" style="padding: 0.3rem 0.75rem; font-size: 0.75rem;">
+                                        Approve
+                                    </button>
+                                    <button onclick="reviewPromotion(${req.id}, false)" class="btn btn-outline" style="padding: 0.3rem 0.75rem; font-size: 0.75rem; color: var(--danger); border-color: rgba(239,68,68,0.3);">
+                                        Reject
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>`;
+                        tbody.append(row);
+                    });
+                }
+            });
+        }
+
+        // Modal Controls
+        function openPromotionModal() { $("#elevation-modal").css("display", "flex"); }
+        function closePromotionModal() { $("#elevation-modal").hide(); }
+
+        function openCreateOrgModal() { $("#create-org-modal").css("display", "flex"); }
+        function closeCreateOrgModal() { $("#create-org-modal").hide(); }
+
+        function openAssignUserModal() { $("#assign-user-modal").css("display", "flex"); }
+        function closeAssignUserModal() { $("#assign-user-modal").hide(); }
+
+        // Form Handlers
+        function submitPromotionRequest() {
+            const selectedScopes = [];
+            $("input[name='elev-scope']:checked").each(function () {
+                selectedScopes.push($(this).val());
+            });
+
+            const payload = {
+                serviceId: $("#elev-service").val(),
+                requestedClearance: parseInt($("#elev-clearance").val(), 10),
+                requestedRole: "member",
+                requestedScopes: selectedScopes,
+                justification: $("#elev-justification").val()
+            };
+
+            $.ajax({
+                url: "/api/v1/promotions/request",
+                method: "POST",
+                contentType: "application/json",
+                data: JSON.stringify(payload),
+                success: function () {
+                    alert("Elevation request submitted successfully!");
+                    closePromotionModal();
+                    loadUnifiedProfile();
+                },
+                error: function (xhr) {
+                    alert("Failed to submit request: " + (xhr.responseJSON ? xhr.responseJSON.message : "Error"));
+                }
+            });
+        }
+
+        function submitCreateOrg() {
+            const payload = {
+                name: $("#org-name").val(),
+                code: $("#org-code").val(),
+                description: $("#org-desc").val(),
+                active: true
+            };
+
+            $.ajax({
+                url: "/api/v1/admin/organizations",
+                method: "POST",
+                contentType: "application/json",
+                data: JSON.stringify(payload),
+                success: function () {
+                    alert("Organization created successfully!");
+                    closeCreateOrgModal();
+                    loadOrganizations();
+                },
+                error: function (xhr) {
+                    alert("Failed to create organization: " + (xhr.responseJSON ? xhr.responseJSON.message : "Error"));
+                }
+            });
+        }
+
+        function submitAssignUser() {
+            const code = $("#assign-org-code").val();
+            const username = $("#assign-username").val();
+
+            $.ajax({
+                url: "/api/v1/admin/organizations/" + encodeURIComponent(code) + "/assign-user",
+                method: "POST",
+                contentType: "application/json",
+                data: JSON.stringify({ username: username }),
+                success: function () {
+                    alert("User assigned to organization successfully!");
+                    closeAssignUserModal();
+                    loadUnifiedProfile();
+                },
+                error: function (xhr) {
+                    alert("Failed to assign user: " + (xhr.responseJSON ? xhr.responseJSON.message : "Error"));
+                }
+            });
+        }
+
+        function deactivateOrg(id) {
+            if (!confirm("Are you sure you want to deactivate this organization?")) return;
+            $.ajax({
+                url: "/api/v1/admin/organizations/" + id,
+                method: "DELETE",
+                success: function () {
+                    loadOrganizations();
+                }
+            });
+        }
+
+        function reviewPromotion(id, approve) {
+            let reason = null;
+            if (!approve) {
+                reason = prompt("Enter reason for rejection:") || "Declined by admin";
+            }
+
+            $.ajax({
+                url: "/api/v1/promotions/admin/" + id + "/review",
+                method: "POST",
+                contentType: "application/json",
+                data: JSON.stringify({
+                    approved: approve,
+                    reason: reason
+                }),
+                success: function () {
+                    alert(approve ? "Request approved and synchronized with downstream service!" : "Request rejected.");
+                    loadAdminPendingApprovals();
+                    loadUnifiedProfile();
+                },
+                error: function (xhr) {
+                    alert("Failed to process approval: " + (xhr.responseJSON ? xhr.responseJSON.message : xhr.responseText));
+                }
+            });
+        }
+
+        function launchRagQuery() {
+            // Interactive quick modal or redirect
+            let query = prompt("Enter culinary knowledge query for Kitchome RAG (or leave blank to open API/Streamlit console):");
+            if (query !== null && query.trim().length > 0) {
+                alert("Query received: "" + query + ""\n\nDispatching to downstream RAG query engine...");
+            }
+        }
+
+        function launchIngestion() {
+            openIngestionModal();
+        }
+
+        function openIngestionModal() {
+            $("#ingestion-history-modal").css("display", "flex");
+            loadModalIngestionHistory();
+        }
+
+        function closeIngestionModal() {
+            $("#ingestion-history-modal").hide();
+        }
+
+        function loadModalIngestionHistory() {
+            const tbody = $("#modal-ingestion-table-body");
+            tbody.html('<tr><td colspan="6" style="padding: 1rem; text-align: center; color: var(--text-dim);">Loading records...</td></tr>');
+
+            // Downstream Kitchome RAG API
+            $.ajax({
+                url: "http://localhost:8000/api/v1/ingest/history",
+                method: "GET",
+                xhrFields: { withCredentials: true },
+                success: function (records) {
+                    tbody.empty();
+                    if (!records || records.length === 0) {
+                        tbody.html('<tr><td colspan="6" style="padding: 1.5rem; text-align: center; color: var(--text-dim);">No ingestion records found.</td></tr>');
+                        return;
+                    }
+                    records.forEach(r => {
+                        let isFailed = (r.status === "FAILED");
+                        let isCompleted = (r.status === "COMPLETED");
+                        let statusBadge = isCompleted 
+                            ? '<span style="color: var(--success); font-weight: 700;">● COMPLETED</span>'
+                            : (isFailed ? '<span style="color: var(--danger); font-weight: 700;">✖ FAILED</span>' : '<span style="color: var(--warning);">▲ ' + r.status + '</span>');
+
+                        let dateStr = new Date(r.created_at * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+                        let actionCell = "-";
+                        if (isFailed) {
+                            actionCell = `<button onclick="retryIngestionJob('${r.job_id}')" class="btn btn-primary" style="padding: 0.2rem 0.6rem; font-size: 0.75rem;">🔄 Retry</button>`;
+                        }
+
+                        let row = `
+                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.03);">
+                            <td style="padding: 0.6rem 0.75rem; font-weight: 600;">${r.title || r.document_id}</td>
+                            <td style="padding: 0.6rem 0.75rem;">${statusBadge}</td>
+                            <td style="padding: 0.6rem 0.75rem;">${r.chunks_ingested || 0}</td>
+                            <td style="padding: 0.6rem 0.75rem;">${r.retry_count || 0}</td>
+                            <td style="padding: 0.6rem 0.75rem; color: var(--text-dim);">${dateStr}</td>
+                            <td style="padding: 0.6rem 0.75rem;">${actionCell}</td>
+                        </tr>`;
+                        tbody.append(row);
+                    });
+                },
+                error: function () {
+                    tbody.html('<tr><td colspan="6" style="padding: 1.5rem; text-align: center; color: var(--text-dim);">Direct RAG ingestion ledger accessible. Launch Streamlit app (http://localhost:8501) for interactive studio view.</td></tr>');
+                }
+            });
+        }
+
+        function retryIngestionJob(jobId) {
+            $.ajax({
+                url: "http://localhost:8000/api/v1/ingest/retry/" + encodeURIComponent(jobId),
+                method: "POST",
+                xhrFields: { withCredentials: true },
+                success: function (res) {
+                    alert("Job " + jobId + " retried successfully!");
+                    loadModalIngestionHistory();
+                },
+                error: function (xhr) {
+                    alert("Retry failed: " + (xhr.responseJSON ? xhr.responseJSON.detail : "Error"));
+                }
+            });
+        }
+
+        $("#quick-ingest-form").on("submit", function (e) {
+            e.preventDefault();
+            const payload = {
+                document_id: $("#modal-doc-id").val(),
+                title: $("#modal-doc-title").val(),
+                content: $("#modal-doc-content").val(),
+                declared_domain: "general_home",
+                access_tier: "free",
+                clearance_level: 1
+            };
+            $.ajax({
+                url: "http://localhost:8000/api/v1/ingest",
+                method: "POST",
+                contentType: "application/json",
+                xhrFields: { withCredentials: true },
+                data: JSON.stringify(payload),
+                success: function () {
+                    alert("Document ingested successfully!");
+                    $("#modal-doc-id").val("");
+                    $("#modal-doc-title").val("");
+                    $("#modal-doc-content").val("");
+                    loadModalIngestionHistory();
+                },
+                error: function (xhr) {
+                    alert("Ingestion error: " + (xhr.responseJSON ? xhr.responseJSON.detail : "Error"));
                 }
             });
         });
 
-        function fetchIntegrationsCount() {
-            $.ajax({
-                url: "/api/v1/auth/integrations",
-                method: "GET",
-                success: function (response) {
-                    if (response.payload) {
-                        const connectedCount = response.payload.filter(i => i.connected).length;
-                        $("#integration-count").text(connectedCount);
-                    }
-                }
-            });
+        function logout() {
+            $("#logoutForm").submit();
         }
     </script>
 </body>

@@ -128,6 +128,12 @@
 
     <script>
         document.addEventListener("DOMContentLoaded", function () {
+            const initialParams = new URLSearchParams(window.location.search);
+            const rUri = initialParams.get("redirect_uri");
+            if (rUri) {
+                const logLink = document.querySelector('a[href="/login"]');
+                if (logLink) logLink.href = `/login?redirect_uri=${encodeURIComponent(rUri)}`;
+            }
             const registerForm = document.getElementById("registerForm");
             const errorMsg = document.getElementById("error-msg");
             const successMsg = document.getElementById("success-msg");
@@ -167,12 +173,18 @@
                     const data = await response.json();
 
                     if (response.ok) {
-                        successMsg.innerText = "Registration successful! Redirecting to verify email...";
+                        const urlParams = new URLSearchParams(window.location.search);
+                        const redirectUri = urlParams.get("redirect_uri");
+                        successMsg.innerText = "Registration successful! Redirecting to sign in...";
                         successMsg.style.display = "block";
                         registerForm.style.display = "none";
                         setTimeout(() => {
-                            window.location.href = "/verify-email";
-                        }, 2000);
+                            if (redirectUri) {
+                                window.location.href = `/login?redirect_uri=${encodeURIComponent(redirectUri)}`;
+                            } else {
+                                window.location.href = "/login";
+                            }
+                        }, 1500);
                     } else {
                         errorMsg.innerText = data.message || "Registration failed. Email or username might be taken.";
                         errorMsg.style.display = "block";

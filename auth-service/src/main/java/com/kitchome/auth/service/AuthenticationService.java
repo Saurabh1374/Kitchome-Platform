@@ -1,7 +1,8 @@
 package com.kitchome.auth.service;
 
-import com.kitchome.auth.authentication.CustomUserDetails;
+import com.kitchome.auth.dao.UserRepositoryDao;
 import com.kitchome.auth.entity.RefreshToken;
+import com.kitchome.auth.entity.User;
 import com.kitchome.auth.util.JwtUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -14,6 +15,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -24,6 +26,7 @@ public class AuthenticationService {
 
     private final JwtUtil jwtUtil;
     private final RefreshTokenService refreshTokenService;
+    private final UserRepositoryDao userRepositoryDao;
 
     /**
      * Finalizes the login process by generating tokens, capturing metadata,
@@ -32,17 +35,21 @@ public class AuthenticationService {
     public String finalizeLogin(HttpServletRequest request, HttpServletResponse response,
             Authentication authentication) {
         String username = authentication.getName();
-        List<String> roles = authentication.getAuthorities().stream()
+        List<String> authRoles = authentication.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
                 .collect(Collectors.toList());
 
-        log.info("Finalizing login for user: {} with roles: {}", username, roles);
+        log.info("Finalizing login for user: {} with authorities: {}", username, authRoles);
 
-        // 1. Generate Enriched Access Token (JWT)
-        // We can extend JwtUtil to include roles if needed, currently it supports
-        // agentId and scopes.
-        // For now, let's use the existing generateToken and we might enhance it later.
-        String accessToken = jwtUtil.generateToken(username);
+        Optional<User> userOpt = userRepositoryDao.findByUsername(username);
+        String email = userOpt.map(User::getEmail).orElse(null);
+        String tenantId = userOpt.map(u -> u.getOrganization() != null ? u.getOrganization().getCode() : "default").orElse("default");
+        String tier = userOpt.map(User::getTier).orElse("free");
+        List<String> roles = userOpt.map(u -> u.getRoles().stream().map(r -> r.getRole()).collect(Collectors.toList()))
+                .orElse(authRoles);
+
+        // 1. Generate Enriched Minimal Access Token (JWT) with tenant_id and tier
+        String accessToken = jwtUtil.generateToken(username, email, tenantId, tier, roles);
 
         // 2. Capture Metadata & Generate Refresh Token
         String ip = request.getRemoteAddr();
@@ -53,8 +60,6 @@ public class AuthenticationService {
                 userAgent);
 
         // 3. Set Cookies
-
-        // Access Token Cookie (Short lived, e.g., same as JWT expiration)
         ResponseCookie jwtCookie = ResponseCookie.from("kitchome_access", accessToken)
                 .httpOnly(true)
                 .secure(false) // TODO: Set to true in production (HTTPS)
@@ -63,7 +68,6 @@ public class AuthenticationService {
                 .sameSite("Lax")
                 .build();
 
-        // Refresh Token Cookie (Long lived)
         ResponseCookie refreshCookie = ResponseCookie.from("refreshToken", refreshToken.getToken())
                 .httpOnly(true)
                 .secure(false) // TODO: Set to true in production
@@ -74,15 +78,13 @@ public class AuthenticationService {
 
         response.addHeader(HttpHeaders.SET_COOKIE, jwtCookie.toString());
         response.addHeader(HttpHeaders.SET_COOKIE, refreshCookie.toString());
-
-        // Also add Authorization header for immediate response visibility if needed
         response.addHeader(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken);
 
         return accessToken;
     }
 
     private String generateFingerprint(String ip, String userAgent) {
-        return UUID.nameUUIDFromBytes((userAgent + ip).getBytes()).toString();
+        return UUID.nameUUIDFromBytes(((userAgent != null ? userAgent : "") + (ip != null ? ip : "")).getBytes()).toString();
     }
 
     /**

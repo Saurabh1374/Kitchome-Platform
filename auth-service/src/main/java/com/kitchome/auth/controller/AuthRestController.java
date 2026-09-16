@@ -16,6 +16,7 @@ import com.kitchome.auth.util.JwtUtil;
 import com.kitchome.common.payload.ApiResponse;
 import com.kitchome.auth.payload.IntegrationInfoDTO;
 import java.util.List;
+import java.util.stream.Collectors;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -116,7 +117,10 @@ public class AuthRestController {
             refreshTokenService.invalidate(token); // rotation
 
             User user = token.getUser();
-            String newAccessToken = jwtUtil.generateToken(user.getUsername());
+            String tenantId = (user.getOrganization() != null) ? user.getOrganization().getCode() : "default";
+            String tier = (user.getTier() != null) ? user.getTier() : "free";
+            List<String> roles = user.getRoles().stream().map(r -> r.getRole()).collect(Collectors.toList());
+            String newAccessToken = jwtUtil.generateToken(user.getUsername(), user.getEmail(), tenantId, tier, roles);
             RefreshToken newRefresh = refreshTokenService
                     .generateAndStoreRefreshToken(user.getUsername(), fingerprint, ip,
                             httpRequest.getHeader("User-Agent"));
