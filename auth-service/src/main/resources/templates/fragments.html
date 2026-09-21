@@ -6,7 +6,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title th:text="${title} + ' | KitChome'">KitChome</title>
     <link rel="stylesheet" th:href="@{/css/main.css}">
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script th:src="@{/js/jquery-3.6.0.min.js}"></script>
+    <script>
+        if (typeof jQuery === 'undefined') {
+            document.write('<script src="https://code.jquery.com/jquery-3.6.0.min.js"><\/script>');
+        }
+    </script>
 </head>
 
 <body>
@@ -20,6 +25,8 @@
                     <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
                 </svg>
             </div>
+            <span style="font-weight: 700; font-size: 1.25rem; color: var(--text-main); letter-spacing: -0.02em;">Kit<span class="text-gradient">Chome</span></span>
+        </a>
         <div id="nav-actions" style="display: flex; gap: 1rem; align-items: center;">
             <th:block th:if="${!isAuthenticated}">
                 <a href="/login" class="btn btn-outline" style="padding: 0.5rem 1rem; font-size: 0.875rem;">Login</a>
@@ -63,8 +70,23 @@
             </svg>
             Elevations
         </a>
+        <a id="nav-admin-onboardings" th:href="@{/onboarding}" class="btn btn-outline sidebar-link"
+            th:style="${isAdmin} ? 'justify-content: flex-start; border: none; width: 100%;' : 'justify-content: flex-start; border: none; width: 100%; display: none;'">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                <circle cx="8.5" cy="7" r="4" />
+                <polyline points="17 11 19 13 23 9" />
+            </svg>
+            Onboarding Requests
+            <span id="nav-pending-onboardings-badge"
+                  th:if="${pendingOnboardingsCount != null and pendingOnboardingsCount > 0}"
+                  th:text="${pendingOnboardingsCount}"
+                  class="badge"
+                  style="margin-left: auto; background: var(--warning); color: black; font-size: 0.7rem; padding: 2px 6px; border-radius: 10px; font-weight: bold;">
+            </span>
+        </a>
         <a id="nav-admin-orgs" th:href="@{/dashboard#admin-org-section}" class="btn btn-outline sidebar-link"
-            style="justify-content: flex-start; border: none; width: 100%; display: none;">
+            th:style="${isAdmin} ? 'justify-content: flex-start; border: none; width: 100%;' : 'justify-content: flex-start; border: none; width: 100%; display: none;'">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M3 21h18M3 7v14M21 7v14M6 11h4M6 15h4M14 11h4M14 15h4M9 21v-4h6v4M3 7l9-4 9 4" />
             </svg>

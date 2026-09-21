@@ -70,6 +70,7 @@ public class SecurityConfig {
 								// Allowed public endpoints (New + Legacy + Swagger + Actuator)
 								.requestMatchers("/api/v1/auth/**", "/login", "/register", "/static/**", "/error",
 										"/invalidSession", "/", "/verify-email", "/resend-verification",
+										"/onboarding", "/onboardings", "/admin/onboardings",
 										"/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html",
 										"/actuator/**", "/.well-known/**",
 										"/*.png", "/*.svg", "/*.jpg", "/*.jpeg", "/*.ico", "/css/**", "/js/**", "/images/**")

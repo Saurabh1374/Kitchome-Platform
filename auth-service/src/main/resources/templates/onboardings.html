@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head('Onboarding Requests')}"></head>
+<body style="background-color: var(--bg-darker); min-height: 100vh; color: var(--text-main);">
+    <nav th:replace="~{fragments :: navbar}"></nav>
+
+    <div style="max-width: 1400px; margin: 0 auto; display: flex; gap: 2rem; padding: 0 2rem 4rem;">
+        <!-- Sidebar -->
+        <aside th:replace="~{fragments :: sidebar}"></aside>
+
+        <!-- Main Content -->
+        <main style="flex: 1; display: flex; flex-direction: column; gap: 2rem;">
+            <!-- Header -->
+            <header class="animate-slide-up" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
+                <div>
+                    <h1 style="font-size: 2.25rem; font-weight: 800; margin-bottom: 0.25rem;" class="text-gradient">
+                        User Onboarding Requests
+                    </h1>
+                    <p style="color: var(--text-muted); font-size: 1rem; margin: 0;">
+                        Review new user registrations, assign enterprise tenant organizations, and grant initial RBAC / ABAC roles.
+                    </p>
+                </div>
+                <div style="display: flex; gap: 0.75rem;">
+                    <a href="/dashboard" class="btn btn-outline" style="font-size: 0.875rem;">
+                        ← Back to Dashboard
+                    </a>
+                    <button onclick="location.reload()" class="btn btn-primary" style="font-size: 0.875rem;">
+                        🔄 Refresh
+                    </button>
+                </div>
+            </header>
+
+            <!-- ================= ADMIN VIEW ================= -->
+            <th:block th:if="${isAdmin}">
+                <!-- Stat Cards -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.5rem;" class="animate-slide-up">
+                    <div class="glass" style="padding: 1.5rem; border-radius: 20px; border-left: 4px solid var(--warning);">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                            <div>
+                                <p style="color: var(--text-muted); font-size: 0.85rem; margin: 0; font-weight: 600; text-transform: uppercase;">Pending Onboardings</p>
+                                <h3 id="stat-pending-count" style="font-size: 2rem; font-weight: 800; margin: 0.25rem 0 0;" th:text="${pendingOnboardingsCount != null ? pendingOnboardingsCount : 0}">0</h3>
+                            </div>
+                            <span class="badge" style="background: rgba(245, 158, 11, 0.2); color: var(--warning); font-weight: bold; padding: 4px 8px; border-radius: 8px;">AWAITING REVIEW</span>
+                        </div>
+                    </div>
+
+                    <div class="glass" style="padding: 1.5rem; border-radius: 20px; border-left: 4px solid var(--success);">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                            <div>
+                                <p style="color: var(--text-muted); font-size: 0.85rem; margin: 0; font-weight: 600; text-transform: uppercase;">Active Users</p>
+                                <h3 style="font-size: 2rem; font-weight: 800; margin: 0.25rem 0 0;" th:text="${approvedUsers != null ? approvedUsers.size() : 0}">0</h3>
+                            </div>
+                            <span class="badge" style="background: rgba(16, 185, 129, 0.2); color: var(--success); font-weight: bold; padding: 4px 8px; border-radius: 8px;">PROVISIONED</span>
+                        </div>
+                    </div>
+
+                    <div class="glass" style="padding: 1.5rem; border-radius: 20px; border-left: 4px solid var(--primary);">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                            <div>
+                                <p style="color: var(--text-muted); font-size: 0.85rem; margin: 0; font-weight: 600; text-transform: uppercase;">Tenant Organizations</p>
+                                <h3 style="font-size: 2rem; font-weight: 800; margin: 0.25rem 0 0;" th:text="${organizations != null ? organizations.size() : 0}">0</h3>
+                            </div>
+                            <span class="badge" style="background: rgba(99, 102, 241, 0.2); color: var(--primary-light); font-weight: bold; padding: 4px 8px; border-radius: 8px;">DOMAINS</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pending Onboardings Table Section -->
+                <section class="glass animate-slide-up" style="padding: 2rem; border-radius: 24px;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem;">
+                        <div style="display: flex; align-items: center; gap: 0.75rem;">
+                            <h2 style="font-size: 1.35rem; font-weight: 700; margin: 0;">Pending Registrations (SSO & Email Gate)</h2>
+                            <span id="pending-badge" class="badge" style="background: rgba(245, 158, 11, 0.2); color: var(--warning); font-size: 0.8rem; padding: 2px 10px; border-radius: 8px; font-weight: 700;"
+                                  th:text="${(pendingOnboardingsCount != null ? pendingOnboardingsCount : 0) + ' PENDING'}">
+                                0 PENDING
+                            </span>
+                        </div>
+                    </div>
+
+                    <div style="overflow-x: auto;">
+                        <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem;">
+                            <thead>
+                                <tr style="border-bottom: 1px solid var(--glass-border); color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em;">
+                                    <th style="padding: 0.85rem 1rem;">User ID / Username</th>
+                                    <th style="padding: 0.85rem 1rem;">Email & Verification</th>
+                                    <th style="padding: 0.85rem 1rem;">Assign Role</th>
+                                    <th style="padding: 0.85rem 1rem;">Assign Organization</th>
+                                    <th style="padding: 0.85rem 1rem; text-align: right;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="onboardings-table-body">
+                                <th:block th:if="${pendingUsers != null and !pendingUsers.isEmpty()}">
+                                    <tr th:each="u : ${pendingUsers}" th:id="'row-onboard-' + ${u.id}" style="border-bottom: 1px solid rgba(255,255,255,0.04); transition: background 0.2s;">
+                                        <td style="padding: 1rem; font-weight: 600;">
+                                            <span th:text="${u.username}">username</span>
+                                            <span style="font-size: 0.75rem; color: var(--text-dim);" th:text="'(ID: ' + ${u.id} + ')'">(ID: 1)</span>
+                                        </td>
+                                        <td style="padding: 1rem; color: var(--text-muted);">
+                                            <div th:text="${u.email}">email@domain.com</div>
+                                            <span th:if="${u.emailVerified}" class="badge" style="background: rgba(16, 185, 129, 0.15); color: var(--success); font-size: 0.7rem; padding: 1px 6px; border-radius: 4px;">Verified</span>
+                                            <span th:unless="${u.emailVerified}" class="badge" style="background: rgba(239, 68, 68, 0.15); color: var(--danger); font-size: 0.7rem; padding: 1px 6px; border-radius: 4px;">Unverified</span>
+                                        </td>
+                                        <td style="padding: 1rem;">
+                                            <select th:id="'onboard-role-' + ${u.id}" class="auth-input" style="padding: 0.4rem 0.6rem; font-size: 0.85rem; width: auto; background: rgba(255,255,255,0.05);">
+                                                <option value="USER" selected>USER (Baseline)</option>
+                                                <option value="MODERATOR">MODERATOR (Ingestion Mod)</option>
+                                                <option value="ADMIN">ADMIN</option>
+                                            </select>
+                                        </td>
+                                        <td style="padding: 1rem;">
+                                            <select th:id="'onboard-org-' + ${u.id}" class="auth-input" style="padding: 0.4rem 0.6rem; font-size: 0.85rem; width: auto; background: rgba(255,255,255,0.05);">
+                                                <option value="default">Default Tenant</option>
+                                                <th:block th:if="${organizations != null}">
+                                                    <option th:each="org : ${organizations}" th:value="${org.code}" th:text="${org.name + ' (' + org.code + ')'}"></option>
+                                                </th:block>
+                                            </select>
+                                        </td>
+                                        <td style="padding: 1rem; text-align: right;">
+                                            <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
+                                                <button th:onclick="'approveOnboarding(' + ${u.id} + ')'" class="btn btn-primary" style="padding: 0.4rem 0.9rem; font-size: 0.8rem;">
+                                                    Approve & Provision
+                                                </button>
+                                                <button th:onclick="'rejectOnboarding(' + ${u.id} + ')'" class="btn btn-outline" style="padding: 0.4rem 0.9rem; font-size: 0.8rem; color: var(--danger); border-color: rgba(239,68,68,0.3);">
+                                                    Reject
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </th:block>
+                                <tr th:if="${pendingUsers == null or pendingUsers.isEmpty()}" id="empty-onboardings-row">
+                                    <td colspan="5" style="padding: 3rem 1rem; text-align: center; color: var(--text-dim);">
+                                        <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🎉</div>
+                                        <div style="font-size: 1.1rem; font-weight: 600; color: var(--text-main); margin-bottom: 0.25rem;">All Onboarding Requests Handled!</div>
+                                        <div style="font-size: 0.875rem;">No new user registrations are currently pending review.</div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- Approved Users Directory -->
+                <section class="glass animate-slide-up" style="padding: 2rem; border-radius: 24px;">
+                    <div style="margin-bottom: 1.5rem;">
+                        <h2 style="font-size: 1.35rem; font-weight: 700; margin: 0;">Provisioned Users Directory</h2>
+                        <p style="color: var(--text-muted); font-size: 0.875rem; margin-top: 0.25rem;">
+                            Active member accounts with verified tenant isolation and assigned roles.
+                        </p>
+                    </div>
+                    <div style="overflow-x: auto;">
+                        <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem;">
+                            <thead>
+                                <tr style="border-bottom: 1px solid var(--glass-border); color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase;">
+                                    <th style="padding: 0.75rem 1rem;">User ID / Username</th>
+                                    <th style="padding: 0.75rem 1rem;">Email</th>
+                                    <th style="padding: 0.75rem 1rem;">Organization Tenant</th>
+                                    <th style="padding: 0.75rem 1rem;">Role</th>
+                                    <th style="padding: 0.75rem 1rem; text-align: right;">Session Management</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <th:block th:if="${approvedUsers != null and !approvedUsers.isEmpty()}">
+                                    <tr th:each="au : ${approvedUsers}" style="border-bottom: 1px solid rgba(255,255,255,0.03);">
+                                        <td style="padding: 0.75rem 1rem; font-weight: 600;" th:text="${au.username}">username</td>
+                                        <td style="padding: 0.75rem 1rem; color: var(--text-muted);" th:text="${au.email}">email</td>
+                                        <td style="padding: 0.75rem 1rem;">
+                                            <span class="badge" style="background: rgba(99, 102, 241, 0.15); color: var(--primary-light); padding: 2px 8px; border-radius: 6px;"
+                                                  th:text="${au.organization != null ? au.organization.name + ' (' + au.organization.code + ')' : 'default'}">
+                                                default
+                                            </span>
+                                        </td>
+                                        <td style="padding: 0.75rem 1rem;">
+                                            <span class="badge" style="background: rgba(16, 185, 129, 0.15); color: var(--success); padding: 2px 8px; border-radius: 6px;"
+                                                  th:text="${au.roles != null ? au.roles : 'USER'}">
+                                                USER
+                                            </span>
+                                        </td>
+                                        <td style="padding: 0.75rem 1rem; text-align: right;">
+                                            <button th:onclick="'invalidateSession(\'' + ${au.username} + '\')'" class="btn btn-outline" style="padding: 0.25rem 0.6rem; font-size: 0.75rem; border-color: rgba(239,68,68,0.3); color: var(--danger);">
+                                                🚨 Invalidate Tokens
+                                            </button>
+                                        </td>
+                                    </tr>
+                                </th:block>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+            </th:block>
+
+            <!-- ================= NON-ADMIN / USER STATUS VIEW ================= -->
+            <th:block th:unless="${isAdmin}">
+                <section class="glass animate-slide-up" style="padding: 3rem 2rem; border-radius: 24px; text-align: center; max-width: 700px; margin: 2rem auto;">
+                    <th:block th:if="${currentUser != null}">
+                        <div th:if="${!currentUser.enabled}" style="display: flex; flex-direction: column; align-items: center; gap: 1rem;">
+                            <div style="width: 72px; height: 72px; background: rgba(245, 158, 11, 0.15); border: 2px solid var(--warning); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2rem;">
+                                ⏳
+                            </div>
+                            <h2 style="font-size: 1.75rem; font-weight: 800; margin: 0;" class="text-gradient">
+                                Onboarding Status: Pending Approval
+                            </h2>
+                            <p style="color: var(--text-muted); font-size: 1rem; line-height: 1.6; max-width: 500px; margin: 0;">
+                                Hello <strong th:text="${currentUser.username}">User</strong>! Your registration has been received and is waiting for administrator provisioning into an organization tenant.
+                            </p>
+                            <div class="glass" style="padding: 1rem 1.5rem; border-radius: 12px; font-size: 0.85rem; color: var(--text-dim); margin-top: 1rem;">
+                                Once an administrator assigns your tenant and role, you will be granted access to the KitChome RAG Studio and services.
+                            </div>
+                            <button onclick="location.reload()" class="btn btn-primary" style="margin-top: 1rem; padding: 0.6rem 1.5rem;">
+                                🔄 Check Status Again
+                            </button>
+                        </div>
+
+                        <div th:if="${currentUser.enabled}" style="display: flex; flex-direction: column; align-items: center; gap: 1rem;">
+                            <div style="width: 72px; height: 72px; background: rgba(16, 185, 129, 0.15); border: 2px solid var(--success); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2rem;">
+                                ✅
+                            </div>
+                            <h2 style="font-size: 1.75rem; font-weight: 800; margin: 0; color: var(--success);">
+                                Onboarding Complete!
+                            </h2>
+                            <p style="color: var(--text-muted); font-size: 1rem; line-height: 1.6; max-width: 500px; margin: 0;">
+                                Your account is approved and active. You have full access to your organization's services.
+                            </p>
+                            <a href="/dashboard" class="btn btn-primary" style="margin-top: 1rem; padding: 0.6rem 1.5rem;">
+                                🚀 Go to Dashboard
+                            </a>
+                        </div>
+                    </th:block>
+
+                    <th:block th:unless="${currentUser != null}">
+                        <div style="display: flex; flex-direction: column; align-items: center; gap: 1rem;">
+                            <div style="font-size: 3rem;">🔒</div>
+                            <h2 style="font-size: 1.5rem; font-weight: 700; margin: 0;">Sign In to View Onboarding Status</h2>
+                            <p style="color: var(--text-muted); font-size: 0.95rem; margin: 0;">
+                                Please log into your KitChome account to check your registration status.
+                            </p>
+                            <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+                                <a href="/login" class="btn btn-primary" style="padding: 0.5rem 1.5rem;">Login</a>
+                                <a href="/register" class="btn btn-outline" style="padding: 0.5rem 1.5rem;">Register</a>
+                            </div>
+                        </div>
+                    </th:block>
+                </section>
+            </th:block>
+        </main>
+    </div>
+
+    <footer th:replace="~{fragments :: footer}"></footer>
+
+    <script th:if="${isAdmin}">
+        function approveOnboarding(userId) {
+            const role = $(`#onboard-role-${userId}`).val() || "USER";
+            const org = $(`#onboard-org-${userId}`).val() || "default";
+
+            $.ajax({
+                url: `/api/v1/admin/onboardings/${userId}/approve`,
+                method: "POST",
+                contentType: "application/json",
+                data: JSON.stringify({ role: role, organizationCode: org }),
+                success: function (res) {
+                    alert("User approved and provisioned successfully!");
+                    $(`#row-onboard-${userId}`).fadeOut(300, function() {
+                        $(this).remove();
+                        let currentCount = parseInt($("#stat-pending-count").text(), 10) || 1;
+                        let newCount = Math.max(0, currentCount - 1);
+                        $("#stat-pending-count").text(newCount);
+                        $("#pending-badge").text(newCount + " PENDING");
+                        if (newCount === 0) {
+                            $("#onboardings-table-body").html(`
+                                <tr>
+                                    <td colspan="5" style="padding: 3rem 1rem; text-align: center; color: var(--text-dim);">
+                                        <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🎉</div>
+                                        <div style="font-size: 1.1rem; font-weight: 600; color: var(--text-main); margin-bottom: 0.25rem;">All Onboarding Requests Handled!</div>
+                                        <div style="font-size: 0.875rem;">No new user registrations are currently pending review.</div>
+                                    </td>
+                                </tr>
+                            `);
+                        }
+                    });
+                },
+                error: function (xhr) {
+                    alert("Failed to approve onboarding: " + (xhr.responseJSON ? xhr.responseJSON.message : "Error"));
+                }
+            });
+        }
+
+        function rejectOnboarding(userId) {
+            if (!confirm("Are you sure you want to reject and remove this onboarding request?")) {
+                return;
+            }
+
+            $.ajax({
+                url: `/api/v1/admin/onboardings/${userId}/reject`,
+                method: "POST",
+                success: function () {
+                    alert("User registration rejected.");
+                    $(`#row-onboard-${userId}`).fadeOut(300, function() {
+                        $(this).remove();
+                        let currentCount = parseInt($("#stat-pending-count").text(), 10) || 1;
+                        let newCount = Math.max(0, currentCount - 1);
+                        $("#stat-pending-count").text(newCount);
+                        $("#pending-badge").text(newCount + " PENDING");
+                    });
+                },
+                error: function (xhr) {
+                    alert("Failed to reject onboarding: " + (xhr.responseJSON ? xhr.responseJSON.message : "Error"));
+                }
+            });
+        }
+
+        function invalidateSession(username) {
+            if (!confirm(`Revoke all cluster tokens and sessions for ${username}?`)) {
+                return;
+            }
+
+            $.ajax({
+                url: `/api/v1/admin/users/${encodeURIComponent(username)}/invalidate`,
+                method: "POST",
+                success: function () {
+                    alert(`Tokens revoked for ${username}.`);
+                },
+                error: function (xhr) {
+                    alert("Failed to invalidate session: " + (xhr.responseJSON ? xhr.responseJSON.message : "Error"));
+                }
+            });
+        }
+    </script>
+</body>
+</html>

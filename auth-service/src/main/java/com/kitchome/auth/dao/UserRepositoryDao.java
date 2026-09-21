@@ -24,4 +24,9 @@ public interface UserRepositoryDao extends JpaRepository<User, Long> {
 
 	@org.springframework.data.jpa.repository.Query("SELECT COUNT(u) FROM User u JOIN u.roles r WHERE r = com.kitchome.auth.util.Role.ADMIN")
 	long countAdminUsers();
+
+	java.util.List<User> findByEnabledFalse();
+
+	java.util.List<User> findByEnabled(boolean enabled);
 }
+

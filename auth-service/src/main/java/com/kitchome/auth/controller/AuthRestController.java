@@ -49,6 +49,7 @@ public class AuthRestController {
     private final com.kitchome.auth.service.ForgotPasswordService forgotPasswordService;
     private final com.kitchome.auth.service.ThirdPartyIntegrationService integrationService;
     private final com.kitchome.auth.service.AuthenticationService authService;
+    private final com.kitchome.auth.dao.UserRepositoryDao userRepo;
 
     @PostMapping("/register")
     public ResponseEntity<ApiResponse<String>> createUser(@RequestBody @Valid RegisterUserDTO userDto) {
@@ -280,6 +281,33 @@ public class AuthRestController {
                             org.springframework.http.HttpStatus.UNAUTHORIZED));
         }
         return ResponseEntity.ok(ApiResponse.success(integrationService.getAvailableIntegrations(auth.getName())));
+    }
+
+    @PostMapping("/switch-tenant")
+    public ResponseEntity<ApiResponse<JwtResponseDTO>> switchTenant(
+            @RequestBody java.util.Map<String, String> payload,
+            Authentication authentication) {
+        if (authentication == null || !authentication.isAuthenticated() ||
+                authentication instanceof org.springframework.security.authentication.AnonymousAuthenticationToken) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        String username = authentication.getName();
+        User user = userRepo.findByUsername(username)
+                .or(() -> userRepo.findUserByEmailIgnoreCase(username))
+                .orElseThrow(() -> new RuntimeException("User not found: " + username));
+
+        String targetTenant = payload.get("tenantId");
+        if (targetTenant == null || targetTenant.isBlank()) {
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.<JwtResponseDTO>error("tenantId is required", "BAD_REQUEST", HttpStatus.BAD_REQUEST));
+        }
+
+        String tier = (user.getTier() != null) ? user.getTier() : "free";
+        List<String> roles = user.getRoles().stream().map(r -> r.getRole()).collect(Collectors.toList());
+
+        String newAccessToken = jwtUtil.generateToken(user.getUsername(), user.getEmail(), targetTenant, tier, roles);
+        return ResponseEntity.ok(ApiResponse.success(new JwtResponseDTO(newAccessToken, null)));
     }
 
 }

@@ -74,4 +74,15 @@ public class RefreshTokenService {
         token.setValid(false);
         tokenRepo.save(token);
     }
+
+    @Transactional
+    public void invalidateAllForUser(User user) {
+        if (user != null) {
+            java.util.List<RefreshToken> activeTokens = tokenRepo.findByUserAndValidTrue(user);
+            for (RefreshToken rt : activeTokens) {
+                rt.setValid(false);
+            }
+            tokenRepo.saveAll(activeTokens);
+        }
+    }
 }

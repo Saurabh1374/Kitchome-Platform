@@ -18,32 +18,58 @@
                 <div style="display: flex; align-items: center; gap: 1.5rem;">
                     <div
                         style="width: 80px; height: 80px; background: linear-gradient(135deg, var(--primary), var(--secondary)); border-radius: 20px; display: flex; align-items: center; justify-content: center; font-size: 2rem; font-weight: 700; color: white; box-shadow: var(--shadow-lg);">
-                        <span id="user-initial">?</span>
+                        <span id="user-initial" th:text="${profile != null && profile.username != null ? profile.username.substring(0, 1).toUpperCase() : (currentUser != null ? currentUser.username.substring(0, 1).toUpperCase() : '?')}">?</span>
                     </div>
                     <div>
                         <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 0.25rem;">
                             <h1 style="font-size: 1.75rem; font-weight: 700; margin: 0;">Welcome, <span
-                                    id="display-username" class="text-gradient">Loading...</span>!</h1>
+                                    id="display-username" class="text-gradient" th:text="${profile != null && profile.username != null ? (profile.username.contains('@') ? profile.username.split('@')[0] : profile.username) : (currentUser != null ? currentUser.username : 'User')}">User</span>!</h1>
                             <span id="tier-badge" class="badge"
-                                style="background: rgba(99, 102, 241, 0.15); border: 1px solid var(--primary-light); color: var(--primary-light); padding: 0.2rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;">
+                                style="background: rgba(99, 102, 241, 0.15); border: 1px solid var(--primary-light); color: var(--primary-light); padding: 0.2rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;"
+                                th:text="${profile != null && profile.tier != null ? profile.tier.toUpperCase() + ' TIER' : 'FREE TIER'}">
                                 FREE TIER
                             </span>
                             <span id="tenant-badge" class="badge"
-                                style="background: rgba(16, 185, 129, 0.15); border: 1px solid var(--success); color: var(--success); padding: 0.2rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 700;">
+                                style="background: rgba(16, 185, 129, 0.15); border: 1px solid var(--success); color: var(--success); padding: 0.2rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 700;"
+                                th:text="${profile != null && profile.tenantId != null ? (profile.organizationName != null ? profile.organizationName + ' (' + profile.tenantId + ')' : 'Tenant: ' + profile.tenantId) : 'Tenant: default'}">
                                 Tenant: default
                             </span>
                         </div>
-                        <p id="user-email" style="color: var(--text-muted); font-size: 0.95rem; margin: 0;">email@domain.com</p>
+                        <p id="user-email" style="color: var(--text-muted); font-size: 0.95rem; margin: 0;"
+                           th:text="${profile != null && profile.email != null ? profile.email : (currentUser != null ? currentUser.email : 'No email on record')}">email@domain.com</p>
                     </div>
                 </div>
                 <div style="text-align: right;">
                     <p id="today-date" style="font-weight: 600; color: var(--text-main); margin-bottom: 0.25rem;"></p>
                     <span id="global-role-badge"
-                        style="background: rgba(236, 72, 153, 0.15); border: 1px solid var(--secondary); color: var(--secondary-light); padding: 0.25rem 0.8rem; border-radius: 8px; font-size: 0.8rem; font-weight: 600;">
+                        style="background: rgba(236, 72, 153, 0.15); border: 1px solid var(--secondary); color: var(--secondary-light); padding: 0.25rem 0.8rem; border-radius: 8px; font-size: 0.8rem; font-weight: 600;"
+                        th:text="${profile != null && profile.roles != null ? 'Role: ' + profile.roles.replace('ROLE_', '') : 'Role: USER'}">
                         Role: USER
                     </span>
                 </div>
             </section>
+
+            <!-- Admin Alert Banner: Pending Onboardings Awaiting Review -->
+            <div id="admin-onboarding-alert" class="glass animate-slide-up"
+                 th:style="${isAdmin and pendingOnboardingsCount != null and pendingOnboardingsCount > 0} ? 'padding: 1rem 1.5rem; border-radius: 16px; background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;' : 'display: none;'">
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                    <span style="font-size: 1.5rem;">⚠️</span>
+                    <div>
+                        <strong style="color: var(--warning);">Pending User Onboardings Awaiting Review</strong>
+                        <p style="margin: 0; font-size: 0.85rem; color: var(--text-muted);">
+                            There are <span id="alert-onboardings-count" style="font-weight: bold; color: var(--text-main);" th:text="${pendingOnboardingsCount != null ? pendingOnboardingsCount : 0}">0</span> registered user(s) waiting for organization & role assignment.
+                        </p>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 0.5rem;">
+                    <a href="/onboarding" class="btn btn-primary" style="font-size: 0.85rem; padding: 0.4rem 1rem;">
+                        Open Onboardings Web Page ↗
+                    </a>
+                    <a href="#admin-onboardings-section" class="btn btn-outline" style="font-size: 0.85rem; padding: 0.4rem 1rem;">
+                        Review Below ↓
+                    </a>
+                </div>
+            </div>
 
             <!-- Quick Service Access & Dynamic Launcher Grid -->
             <section id="services-section" class="animate-slide-up">
@@ -54,13 +80,18 @@
                             Coarse-grained application-level role & fine-grained service access privileges.
                         </p>
                     </div>
-                    <button onclick="openPromotionModal()" class="btn btn-primary" style="font-size: 0.875rem;">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <line x1="12" y1="5" x2="12" y2="19"></line>
-                            <line x1="5" y1="12" x2="19" y2="12"></line>
-                        </svg>
-                        Request Access Elevation
-                    </button>
+                    <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
+                        <a href="http://localhost:8501" target="_blank" class="btn btn-outline" style="font-size: 0.875rem; border-color: var(--primary-light); color: var(--primary-light); text-decoration: none;">
+                            🍳 Launch Streamlit RAG Studio ↗
+                        </a>
+                        <button onclick="openPromotionModal()" class="btn btn-primary" style="font-size: 0.875rem;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="12" y1="5" x2="12" y2="19"></line>
+                                <line x1="5" y1="12" x2="19" y2="12"></line>
+                            </svg>
+                            Request Access Elevation
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Dynamic Service Cards Container -->
@@ -107,7 +138,8 @@
             </section>
 
             <!-- Admin Section: Organization & Tenant Management (Admins Only) -->
-            <section id="admin-org-section" class="glass animate-slide-up" style="padding: 2rem; border-radius: 24px; display: none;">
+            <section id="admin-org-section" class="glass animate-slide-up"
+                     th:style="${isAdmin} ? 'padding: 2rem; border-radius: 24px;' : 'padding: 2rem; border-radius: 24px; display: none;'">
                 <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
                     <div>
                         <div style="display: flex; align-items: center; gap: 0.5rem;">
@@ -152,7 +184,8 @@
             </section>
 
             <!-- Admin Section: Pending Access Promotion Approvals (Admins Only) -->
-            <section id="admin-approvals-section" class="glass animate-slide-up" style="padding: 2rem; border-radius: 24px; display: none;">
+            <section id="admin-approvals-section" class="glass animate-slide-up"
+                     th:style="${isAdmin} ? 'padding: 2rem; border-radius: 24px;' : 'padding: 2rem; border-radius: 24px; display: none;'">
                 <div style="margin-bottom: 1.5rem;">
                     <div style="display: flex; align-items: center; gap: 0.5rem;">
                         <h3 style="font-size: 1.25rem; font-weight: 700; margin: 0;">Pending Promotion Requests</h3>
@@ -180,6 +213,116 @@
                             <tr>
                                 <td colspan="7" style="padding: 1.5rem 1rem; text-align: center; color: var(--text-dim);">
                                     No pending approvals.
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Admin Section: Pending User Onboardings (SSO Gate) -->
+            <section id="admin-onboardings-section" class="glass animate-slide-up"
+                     th:style="${isAdmin} ? 'padding: 2rem; border-radius: 24px;' : 'padding: 2rem; border-radius: 24px; display: none;'">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+                    <div>
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <h3 style="font-size: 1.25rem; font-weight: 700; margin: 0;">Pending User Onboardings (SSO Gate)</h3>
+                            <span id="pending-onboardings-count-badge" class="badge" style="background: rgba(245, 158, 11, 0.2); color: var(--warning); font-size: 0.75rem; padding: 2px 8px; border-radius: 6px; font-weight: 700;"
+                                  th:text="${(pendingOnboardingsCount != null ? pendingOnboardingsCount : 0) + ' PENDING'}">
+                                0 PENDING
+                            </span>
+                        </div>
+                        <p style="color: var(--text-muted); font-size: 0.875rem; margin-top: 0.25rem;">
+                            All new registrations must be approved and provisioned with an organization tenant and role before they can authenticate.
+                        </p>
+                    </div>
+                    <a href="/onboarding" class="btn btn-outline" style="font-size: 0.85rem; padding: 0.4rem 1rem;">
+                        Open Onboardings Web Page ↗
+                    </a>
+                </div>
+
+                <div style="overflow-x: auto;">
+                    <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem;">
+                        <thead>
+                            <tr style="border-bottom: 1px solid var(--glass-border); color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase;">
+                                <th style="padding: 0.75rem 1rem;">User ID / Username</th>
+                                <th style="padding: 0.75rem 1rem;">Email</th>
+                                <th style="padding: 0.75rem 1rem;">Assign Role</th>
+                                <th style="padding: 0.75rem 1rem;">Assign Organization</th>
+                                <th style="padding: 0.75rem 1rem;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="admin-onboardings-table-body">
+                            <th:block th:if="${pendingOnboardings != null and !pendingOnboardings.isEmpty()}">
+                                <tr th:each="u : ${pendingOnboardings}" th:id="'dash-onboard-' + ${u.id}" style="border-bottom: 1px solid rgba(255,255,255,0.03);">
+                                    <td style="padding: 0.85rem 1rem; font-weight: 600;">
+                                        <span th:text="${u.username}">username</span>
+                                        <span style="font-size: 0.75rem; color: var(--text-dim);" th:text="'(ID: ' + ${u.id} + ')'">(ID: 1)</span>
+                                    </td>
+                                    <td style="padding: 0.85rem 1rem; color: var(--text-muted);" th:text="${u.email}">email</td>
+                                    <td style="padding: 0.85rem 1rem;">
+                                        <select th:id="'onboard-role-' + ${u.id}" class="auth-input" style="padding: 0.3rem 0.5rem; font-size: 0.8rem; width: auto; background: rgba(255,255,255,0.05);">
+                                            <option value="USER">USER (Baseline)</option>
+                                            <option value="MODERATOR">MODERATOR (Ingestion Mod)</option>
+                                            <option value="ADMIN">ADMIN</option>
+                                        </select>
+                                    </td>
+                                    <td style="padding: 0.85rem 1rem;">
+                                        <select th:id="'onboard-org-' + ${u.id}" class="auth-input" style="padding: 0.3rem 0.5rem; font-size: 0.8rem; width: auto; background: rgba(255,255,255,0.05);">
+                                            <option value="default">Default Tenant</option>
+                                        </select>
+                                    </td>
+                                    <td style="padding: 0.85rem 1rem;">
+                                        <div style="display: flex; gap: 0.5rem;">
+                                            <button th:onclick="'approveOnboarding(' + ${u.id} + ')'" class="btn btn-primary" style="padding: 0.3rem 0.75rem; font-size: 0.75rem;">
+                                                Approve
+                                            </button>
+                                            <button th:onclick="'rejectOnboarding(' + ${u.id} + ')'" class="btn btn-outline" style="padding: 0.3rem 0.75rem; font-size: 0.75rem; color: var(--danger); border-color: rgba(239,68,68,0.3);">
+                                                Reject
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </th:block>
+                            <tr th:if="${pendingOnboardings == null or pendingOnboardings.isEmpty()}">
+                                <td colspan="5" style="padding: 1.5rem 1rem; text-align: center; color: var(--text-dim);">
+                                    No pending onboarding registrations.
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Admin Section: Active Users & Token Invalidation (Admins Only) -->
+            <section id="admin-users-section" class="glass animate-slide-up"
+                     th:style="${isAdmin} ? 'padding: 2rem; border-radius: 24px;' : 'padding: 2rem; border-radius: 24px; display: none;'">
+                <div style="margin-bottom: 1.5rem;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <h3 style="font-size: 1.25rem; font-weight: 700; margin: 0;">Active Users & Session Revocation</h3>
+                        <span class="badge" style="background: rgba(239, 68, 68, 0.2); color: var(--danger); font-size: 0.75rem; padding: 2px 8px; border-radius: 6px; font-weight: 700;">CLUSTER REVOCATION</span>
+                    </div>
+                    <p style="color: var(--text-muted); font-size: 0.875rem; margin-top: 0.25rem;">
+                        Invalidating user sessions updates the shared PostgreSQL revocation epoch (<code>user_tokens_revoked_at</code>), immediately invalidating all active tokens downstream in RAG.
+                    </p>
+                </div>
+
+                <div style="overflow-x: auto;">
+                    <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem;">
+                        <thead>
+                            <tr style="border-bottom: 1px solid var(--glass-border); color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase;">
+                                <th style="padding: 0.75rem 1rem;">Username</th>
+                                <th style="padding: 0.75rem 1rem;">Email</th>
+                                <th style="padding: 0.75rem 1rem;">Roles</th>
+                                <th style="padding: 0.75rem 1rem;">Tenant</th>
+                                <th style="padding: 0.75rem 1rem;">Status</th>
+                                <th style="padding: 0.75rem 1rem;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="admin-users-table-body">
+                            <tr>
+                                <td colspan="6" style="padding: 1.5rem 1rem; text-align: center; color: var(--text-dim);">
+                                    Loading users...
                                 </td>
                             </tr>
                         </tbody>
@@ -328,11 +471,37 @@
                             <input type="text" id="modal-doc-title" class="auth-input" placeholder="e.g. Classic Vanilla Creme Brulee" required>
                         </div>
                     </div>
-                    <div class="input-group">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 0.5rem;">
+                        <div class="input-group">
+                            <label class="input-label">Target Domain</label>
+                            <select id="modal-doc-domain" class="auth-input" style="width: 100%; cursor: pointer;" onchange="onModalDomainChange()">
+                                <option value="recipes_culinary">recipes_culinary</option>
+                                <option value="appliances_troubleshooting">appliances_troubleshooting</option>
+                                <option value="home_decor_design">home_decor_design</option>
+                                <option value="cleaning_maintenance">cleaning_maintenance</option>
+                                <option value="academia_research">academia_research</option>
+                                <option value="general_home" selected>general_home</option>
+                                <option value="kitchenware">kitchenware</option>
+                                <option value="__custom__">➕ Other / Add Custom Domain...</option>
+                            </select>
+                        </div>
+                        <div class="input-group" id="modal-custom-domain-container" style="display: none;">
+                            <label class="input-label">New Custom Domain (Strict Grammar Checked)</label>
+                            <input type="text" id="modal-custom-domain" class="auth-input" placeholder="e.g. artisan_bakery or Beverage Mixology">
+                            <div id="modal-domain-feedback" style="font-size: 0.75rem; margin-top: 4px; display: none;"></div>
+                        </div>
+                    </div>
+                    <div class="input-group" style="margin-top: 0.5rem;">
                         <label class="input-label">Content / Markdown</label>
                         <textarea id="modal-doc-content" class="auth-input" rows="3" placeholder="Enter culinary content..." required></textarea>
                     </div>
-                    <div style="display: flex; justify-content: flex-end;">
+                    <div class="input-group" style="margin-top: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                        <input type="checkbox" id="modal-wait-for-summary" style="cursor: pointer; width: 16px; height: 16px;">
+                        <label for="modal-wait-for-summary" style="font-size: 0.85rem; cursor: pointer; color: var(--text-muted); margin: 0;">
+                            Wait for 3-Tier Summary (Unchecked = Instant Async Indexing)
+                        </label>
+                    </div>
+                    <div style="display: flex; justify-content: flex-end; margin-top: 0.75rem;">
                         <button type="submit" class="btn btn-primary" style="font-size: 0.85rem; padding: 0.5rem 1.25rem;">Submit Ingestion</button>
                     </div>
                 </form>
@@ -421,9 +590,14 @@
                         if (isAdminUser) {
                             $("#admin-org-section").show();
                             $("#admin-approvals-section").show();
+                            $("#admin-onboardings-section").show();
+                            $("#admin-users-section").show();
                             $("#nav-admin-orgs").show();
+                            $("#nav-admin-onboardings").show();
                             loadOrganizations();
                             loadAdminPendingApprovals();
+                            loadPendingOnboardings();
+                            loadAllAdminUsers();
                         }
                     }
                 },
@@ -577,18 +751,20 @@
             });
         }
 
+        let globalOrganizations = [];
         function loadOrganizations() {
             $.ajax({
                 url: "/api/v1/admin/organizations",
                 method: "GET",
                 success: function (res) {
+                    globalOrganizations = res.payload || [];
                     const tbody = $("#orgs-table-body");
                     tbody.empty();
-                    if (!res.payload || res.payload.length === 0) {
+                    if (!globalOrganizations || globalOrganizations.length === 0) {
                         tbody.html('<tr><td colspan="6" style="padding: 1.5rem 1rem; text-align: center; color: var(--text-dim);">No organizations registered.</td></tr>');
                         return;
                     }
-                    res.payload.forEach(org => {
+                    globalOrganizations.forEach(org => {
                         let row = `
                         <tr style="border-bottom: 1px solid rgba(255,255,255,0.03);">
                             <td style="padding: 0.85rem 1rem; color: var(--text-dim);">${org.id}</td>
@@ -653,15 +829,206 @@
             });
         }
 
+        function loadPendingOnboardings() {
+            $.ajax({
+                url: "/api/v1/admin/onboardings/pending",
+                method: "GET",
+                success: function (res) {
+                    const tbody = $("#admin-onboardings-table-body");
+                    tbody.empty();
+                    const pendingUsers = res.payload || [];
+                    $("#pending-onboardings-count-badge").text(pendingUsers.length + " PENDING");
+
+                    if (pendingUsers.length > 0) {
+                        $("#nav-pending-onboardings-badge").text(pendingUsers.length).show();
+                        $("#admin-onboarding-alert").show();
+                        $("#alert-onboardings-count").text(pendingUsers.length);
+                    } else {
+                        $("#nav-pending-onboardings-badge").hide();
+                        $("#admin-onboarding-alert").hide();
+                    }
+
+                    if (pendingUsers.length === 0) {
+                        tbody.html('<tr><td colspan="5" style="padding: 1.5rem 1rem; text-align: center; color: var(--text-dim);">No pending onboarding registrations.</td></tr>');
+                        return;
+                    }
+
+                    const orgOptions = (globalOrganizations.length > 0)
+                        ? globalOrganizations.map(o => `<option value="${o.code}">${o.name} (${o.code})</option>`).join("")
+                        : '<option value="default">Default Tenant</option>';
+
+                    pendingUsers.forEach(u => {
+                        let row = `
+                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.03);">
+                            <td style="padding: 0.85rem 1rem; font-weight: 600;">
+                                ${u.username} <span style="font-size: 0.75rem; color: var(--text-dim);">(ID: ${u.id})</span>
+                            </td>
+                            <td style="padding: 0.85rem 1rem; color: var(--text-muted);">${u.email}</td>
+                            <td style="padding: 0.85rem 1rem;">
+                                <select id="onboard-role-${u.id}" class="auth-input" style="padding: 0.3rem 0.5rem; font-size: 0.8rem; width: auto; background: rgba(255,255,255,0.05);">
+                                    <option value="USER">USER (Baseline)</option>
+                                    <option value="MODERATOR">MODERATOR (Ingestion Mod)</option>
+                                    <option value="ADMIN">ADMIN</option>
+                                </select>
+                            </td>
+                            <td style="padding: 0.85rem 1rem;">
+                                <select id="onboard-org-${u.id}" class="auth-input" style="padding: 0.3rem 0.5rem; font-size: 0.8rem; width: auto; background: rgba(255,255,255,0.05);">
+                                    ${orgOptions}
+                                </select>
+                            </td>
+                            <td style="padding: 0.85rem 1rem;">
+                                <div style="display: flex; gap: 0.5rem;">
+                                    <button onclick="approveOnboarding(${u.id})" class="btn btn-primary" style="padding: 0.3rem 0.75rem; font-size: 0.75rem;">
+                                        Approve
+                                    </button>
+                                    <button onclick="rejectOnboarding(${u.id})" class="btn btn-outline" style="padding: 0.3rem 0.75rem; font-size: 0.75rem; color: var(--danger); border-color: rgba(239,68,68,0.3);">
+                                        Reject
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>`;
+                        tbody.append(row);
+                    });
+                }
+            });
+        }
+
+        function approveOnboarding(userId) {
+            const role = $(`#onboard-role-${userId}`).val();
+            const orgCode = $(`#onboard-org-${userId}`).val();
+            $.ajax({
+                url: `/api/v1/admin/onboardings/${userId}/approve`,
+                method: "POST",
+                contentType: "application/json",
+                data: JSON.stringify({ role: role, organizationCode: orgCode }),
+                success: function (res) {
+                    alert(res.message);
+                    loadPendingOnboardings();
+                    loadAllAdminUsers();
+                },
+                error: function (xhr) {
+                    alert("Failed to approve onboarding: " + (xhr.responseJSON ? xhr.responseJSON.message : "Error"));
+                }
+            });
+        }
+
+        function rejectOnboarding(userId) {
+            if (!confirm("Reject and remove this registration?")) return;
+            $.ajax({
+                url: `/api/v1/admin/onboardings/${userId}/reject`,
+                method: "POST",
+                success: function (res) {
+                    alert(res.message);
+                    loadPendingOnboardings();
+                },
+                error: function (xhr) {
+                    alert("Failed to reject onboarding: " + (xhr.responseJSON ? xhr.responseJSON.message : "Error"));
+                }
+            });
+        }
+
+        function loadAllAdminUsers() {
+            $.ajax({
+                url: "/api/v1/admin/users",
+                method: "GET",
+                success: function (res) {
+                    const tbody = $("#admin-users-table-body");
+                    tbody.empty();
+                    const users = res.payload || [];
+
+                    if (users.length === 0) {
+                        tbody.html('<tr><td colspan="6" style="padding: 1.5rem 1rem; text-align: center; color: var(--text-dim);">No users registered.</td></tr>');
+                        return;
+                    }
+
+                    users.forEach(u => {
+                        const rolesStr = (u.roles || []).join(", ");
+                        let row = `
+                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.03);">
+                            <td style="padding: 0.85rem 1rem; font-weight: 600;">${u.username}</td>
+                            <td style="padding: 0.85rem 1rem; color: var(--text-muted);">${u.email}</td>
+                            <td style="padding: 0.85rem 1rem;"><code style="font-size: 0.8rem;">${rolesStr}</code></td>
+                            <td style="padding: 0.85rem 1rem;"><code style="color: var(--primary-light);">${u.tenantId || "default"}</code></td>
+                            <td style="padding: 0.85rem 1rem;">
+                                <span style="color: ${u.enabled ? "var(--success)" : "var(--warning)"}; font-weight: 700; font-size: 0.8rem;">
+                                    ${u.enabled ? "ENABLED" : "PENDING"}
+                                </span>
+                            </td>
+                            <td style="padding: 0.85rem 1rem;">
+                                <button onclick="invalidateUserTokens('${u.username}')" class="btn btn-outline" style="padding: 0.25rem 0.6rem; font-size: 0.75rem; color: var(--danger); border-color: rgba(239,68,68,0.3);" title="Record revocation epoch in rag_pg">
+                                    🚨 Invalidate RAG Tokens
+                                </button>
+                            </td>
+                        </tr>`;
+                        tbody.append(row);
+                    });
+                }
+            });
+        }
+
+        function invalidateUserTokens(username) {
+            if (!confirm(`Are you sure you want to invalidate all sessions for '${username}'? Any older JWT tokens will be rejected cluster-wide in RAG.`)) {
+                return;
+            }
+            $.ajax({
+                url: `/api/v1/admin/users/${encodeURIComponent(username)}/invalidate`,
+                method: "POST",
+                success: function (res) {
+                    alert("Cluster-wide session revocation recorded for: " + username);
+                    loadAllAdminUsers();
+                },
+                error: function (xhr) {
+                    alert("Failed to invalidate session: " + (xhr.responseJSON ? xhr.responseJSON.message : "Error"));
+                }
+            });
+        }
+
+        function switchActiveTenant(tenantId) {
+            if (!tenantId) return;
+            $.ajax({
+                url: "/api/v1/auth/switch-tenant",
+                method: "POST",
+                contentType: "application/json",
+                data: JSON.stringify({ tenantId: tenantId }),
+                success: function (res) {
+                    if (res.payload && res.payload.accessToken) {
+                        alert("Active tenant switched to: " + tenantId);
+                        loadUnifiedProfile();
+                    }
+                },
+                error: function (xhr) {
+                    alert("Failed to switch tenant: " + (xhr.responseJSON ? xhr.responseJSON.message : "Error"));
+                }
+            });
+        }
+
         // Modal Controls
-        function openPromotionModal() { $("#elevation-modal").css("display", "flex"); }
-        function closePromotionModal() { $("#elevation-modal").hide(); }
+        function openPromotionModal() {
+            const m = document.getElementById("elevation-modal");
+            if (m) m.style.display = "flex";
+        }
+        function closePromotionModal() {
+            const m = document.getElementById("elevation-modal");
+            if (m) m.style.display = "none";
+        }
 
-        function openCreateOrgModal() { $("#create-org-modal").css("display", "flex"); }
-        function closeCreateOrgModal() { $("#create-org-modal").hide(); }
+        function openCreateOrgModal() {
+            const m = document.getElementById("create-org-modal");
+            if (m) m.style.display = "flex";
+        }
+        function closeCreateOrgModal() {
+            const m = document.getElementById("create-org-modal");
+            if (m) m.style.display = "none";
+        }
 
-        function openAssignUserModal() { $("#assign-user-modal").css("display", "flex"); }
-        function closeAssignUserModal() { $("#assign-user-modal").hide(); }
+        function openAssignUserModal() {
+            const m = document.getElementById("assign-user-modal");
+            if (m) m.style.display = "flex";
+        }
+        function closeAssignUserModal() {
+            const m = document.getElementById("assign-user-modal");
+            if (m) m.style.display = "none";
+        }
 
         // Form Handlers
         function submitPromotionRequest() {
@@ -775,11 +1142,7 @@
         }
 
         function launchRagQuery() {
-            // Interactive quick modal or redirect
-            let query = prompt("Enter culinary knowledge query for Kitchome RAG (or leave blank to open API/Streamlit console):");
-            if (query !== null && query.trim().length > 0) {
-                alert("Query received: \"" + query + "\"\n\nDispatching to downstream RAG query engine...");
-            }
+            window.open("http://localhost:8501", "_blank");
         }
 
         function launchIngestion() {
@@ -787,12 +1150,50 @@
         }
 
         function openIngestionModal() {
-            $("#ingestion-history-modal").css("display", "flex");
+            const m = document.getElementById("ingestion-history-modal");
+            if (m) m.style.display = "flex";
+            loadModalDomains();
             loadModalIngestionHistory();
         }
 
         function closeIngestionModal() {
-            $("#ingestion-history-modal").hide();
+            const m = document.getElementById("ingestion-history-modal");
+            if (m) m.style.display = "none";
+        }
+
+        function onModalDomainChange() {
+            const val = $("#modal-doc-domain").val();
+            if (val === "__custom__") {
+                $("#modal-custom-domain-container").show();
+                $("#modal-custom-domain").focus();
+            } else {
+                $("#modal-custom-domain-container").hide();
+                $("#modal-domain-feedback").hide().text("");
+            }
+        }
+
+        function loadModalDomains() {
+            $.ajax({
+                url: "http://localhost:8000/api/v1/domains",
+                method: "GET",
+                xhrFields: { withCredentials: true },
+                success: function (data) {
+                    if (data && data.domains && Array.isArray(data.domains)) {
+                        const select = $("#modal-doc-domain");
+                        const currentVal = select.val() || "general_home";
+                        select.empty();
+                        data.domains.forEach(d => {
+                            select.append(`<option value="${d}">${d}</option>`);
+                        });
+                        select.append('<option value="__custom__">➕ Other / Add Custom Domain...</option>');
+                        if (data.domains.includes(currentVal) || currentVal === "__custom__") {
+                            select.val(currentVal);
+                        } else {
+                            select.val("general_home");
+                        }
+                    }
+                }
+            });
         }
 
         function loadModalIngestionHistory() {
@@ -858,13 +1259,26 @@
 
         $("#quick-ingest-form").on("submit", function (e) {
             e.preventDefault();
+            const selectedDomain = $("#modal-doc-domain").val();
+            const customVal = ($("#modal-custom-domain").val() || "").trim();
+
+            let targetDomain = selectedDomain;
+            if (selectedDomain === "__custom__" || customVal.length > 0) {
+                if (!customVal) {
+                    alert("Please enter a custom domain name.");
+                    return;
+                }
+                targetDomain = customVal;
+            }
+
             const payload = {
                 document_id: $("#modal-doc-id").val(),
                 title: $("#modal-doc-title").val(),
                 content: $("#modal-doc-content").val(),
-                declared_domain: "general_home",
+                declared_domain: targetDomain,
                 access_tier: "free",
-                clearance_level: 1
+                clearance_level: 1,
+                wait_for_summary: $("#modal-wait-for-summary").is(":checked")
             };
             $.ajax({
                 url: "http://localhost:8000/api/v1/ingest",
@@ -873,14 +1287,18 @@
                 xhrFields: { withCredentials: true },
                 data: JSON.stringify(payload),
                 success: function () {
-                    alert("Document ingested successfully!");
+                    alert("Document ingested successfully into domain: " + targetDomain);
                     $("#modal-doc-id").val("");
                     $("#modal-doc-title").val("");
                     $("#modal-doc-content").val("");
+                    $("#modal-custom-domain").val("");
+                    $("#modal-custom-domain-container").hide();
+                    loadModalDomains();
                     loadModalIngestionHistory();
                 },
                 error: function (xhr) {
-                    alert("Ingestion error: " + (xhr.responseJSON ? xhr.responseJSON.detail : "Error"));
+                    const detail = xhr.responseJSON ? xhr.responseJSON.detail : "Error";
+                    alert("Ingestion error: " + (typeof detail === "object" ? JSON.stringify(detail) : detail));
                 }
             });
         });

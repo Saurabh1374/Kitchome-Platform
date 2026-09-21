@@ -11,4 +11,6 @@ public interface RefreshTokenRepo extends JpaRepository<RefreshToken, UUID> {
     Optional<RefreshToken> findByTokenHashAndValidTrue(String hash);
 
     Optional<RefreshToken> findByUserAndFingerprintAndValidTrue(com.kitchome.auth.entity.User user, String fingerprint);
+
+    java.util.List<RefreshToken> findByUserAndValidTrue(com.kitchome.auth.entity.User user);
 }

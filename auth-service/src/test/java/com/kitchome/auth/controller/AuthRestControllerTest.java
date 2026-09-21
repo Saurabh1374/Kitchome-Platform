@@ -60,6 +60,8 @@ class AuthRestControllerTest {
     private ThirdPartyIntegrationService integrationService;
     @Mock
     private AuthenticationService authService;
+    @Mock
+    private com.kitchome.auth.dao.UserRepositoryDao userRepo;
 
     @Mock
     private Authentication authentication;

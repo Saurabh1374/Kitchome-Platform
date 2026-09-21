@@ -22,18 +22,19 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class JwtUtilTest {
 
-    @InjectMocks
     private JwtUtil jwtUtil;
+    private RsaKeyProvider rsaKeyProvider;
 
     @Mock
     private UserDetails userDetails;
 
-    private final String SECRET = "mytestsecretkeywhichisverylongandsecureenoughformocking1234567890="; // Base64 arbitrary secret
     private final long EXPIRATION_MS = 1000 * 60 * 60; // 1 hour
 
     @BeforeEach
     void setUp() {
-        ReflectionTestUtils.setField(jwtUtil, "SECRET", SECRET);
+        rsaKeyProvider = new RsaKeyProvider();
+        rsaKeyProvider.init();
+        jwtUtil = new JwtUtil(rsaKeyProvider);
         ReflectionTestUtils.setField(jwtUtil, "expieryDuration", EXPIRATION_MS);
     }
 

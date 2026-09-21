@@ -37,6 +37,15 @@ class AuthViewControllerTest {
     @Mock
     private AuthenticationService authenticationService;
 
+    @Mock
+    private com.kitchome.auth.service.PromotionService promotionService;
+
+    @Mock
+    private com.kitchome.auth.dao.UserRepositoryDao userRepo;
+
+    @Mock
+    private com.kitchome.auth.dao.OrganizationRepository organizationRepo;
+
     @InjectMocks
     private AuthViewController authViewController;
 
@@ -168,5 +177,68 @@ class AuthViewControllerTest {
                 .andExpect(redirectedUrl("/login?logout"));
 
         verify(authenticationService).logout(any(), any());
+    }
+
+    @Test
+    void testShowOnboardingsPage_Unauthenticated() throws Exception {
+        mockMvc.perform(get("/onboarding"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("onboardings"))
+                .andExpect(model().attribute("isAuthenticated", false));
+    }
+
+    @Test
+    void testShowOnboardingsPage_Admin() throws Exception {
+        Authentication auth = mock(Authentication.class);
+        when(auth.isAuthenticated()).thenReturn(true);
+        when(auth.getName()).thenReturn("adminuser");
+
+        SecurityContext context = SecurityContextHolder.createEmptyContext();
+        context.setAuthentication(auth);
+        SecurityContextHolder.setContext(context);
+
+        com.kitchome.auth.payload.UnifiedProfileResponseDTO profile = com.kitchome.auth.payload.UnifiedProfileResponseDTO.builder()
+                .username("adminuser")
+                .roles("ROLE_ADMIN, ROLE_USER")
+                .build();
+        when(promotionService.getUnifiedProfile("adminuser")).thenReturn(profile);
+        when(userRepo.findByEnabledFalse()).thenReturn(List.of());
+        when(organizationRepo.findAll()).thenReturn(List.of());
+        when(userRepo.findByEnabled(true)).thenReturn(List.of());
+
+        mockMvc.perform(get("/onboarding"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("onboardings"))
+                .andExpect(model().attribute("isAuthenticated", true))
+                .andExpect(model().attribute("isAdmin", true))
+                .andExpect(model().attribute("pendingOnboardingsCount", 0));
+    }
+
+    @Test
+    void testShowOnboardingsPage_RegularUser() throws Exception {
+        Authentication auth = mock(Authentication.class);
+        when(auth.isAuthenticated()).thenReturn(true);
+        when(auth.getName()).thenReturn("normaluser");
+
+        SecurityContext context = SecurityContextHolder.createEmptyContext();
+        context.setAuthentication(auth);
+        SecurityContextHolder.setContext(context);
+
+        com.kitchome.auth.payload.UnifiedProfileResponseDTO profile = com.kitchome.auth.payload.UnifiedProfileResponseDTO.builder()
+                .username("normaluser")
+                .roles("ROLE_USER")
+                .build();
+        when(promotionService.getUnifiedProfile("normaluser")).thenReturn(profile);
+        com.kitchome.auth.entity.User user = new com.kitchome.auth.entity.User();
+        user.setUsername("normaluser");
+        user.setEnabled(false);
+        when(userRepo.findByUsername("normaluser")).thenReturn(java.util.Optional.of(user));
+
+        mockMvc.perform(get("/onboardings"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("onboardings"))
+                .andExpect(model().attribute("isAuthenticated", true))
+                .andExpect(model().attribute("isAdmin", false))
+                .andExpect(model().attributeExists("currentUser"));
     }
 }

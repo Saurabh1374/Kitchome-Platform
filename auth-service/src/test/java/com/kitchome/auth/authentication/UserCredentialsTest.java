@@ -97,6 +97,8 @@ class UserCredentialsTest {
         dto.setPassword("password");
 
         when(userRepo.findByEmailIgnoreCase("new@test.com")).thenReturn(Optional.empty());
+        when(userRepo.count()).thenReturn(1L);
+        when(userRepo.countAdminUsers()).thenReturn(1L);
         when(encryptionStrategy.encode("password")).thenReturn("encodedPW");
         when(userRepo.save(any(User.class))).thenReturn(mockUser);
 
@@ -131,6 +133,8 @@ class UserCredentialsTest {
         when(mockProjection.isEmailVerified()).thenReturn(false);
         when(mockProjection.getId()).thenReturn(1L);
         when(userRepo.findById(1L)).thenReturn(Optional.of(mockUser));
+        when(userRepo.count()).thenReturn(1L);
+        when(userRepo.countAdminUsers()).thenReturn(1L);
         
         VerificationToken oldToken = new VerificationToken(mockUser, "old-token");
         when(tokenRepository.findByUser(mockUser)).thenReturn(Optional.of(oldToken));
