@@ -94,9 +94,9 @@ public class UserCredentials implements UserDetailsService {
 			log.info("First-come preference: Registered {} as founding ADMIN with enterprise tier", user.getUsername());
 			return true;
 		} else {
-			user.setRoles(Collections.singleton(Role.USER));
+			user.setRoles(new HashSet<>(Set.of(Role.USER)));
 			user.setTier("free");
-			user.setEnabled(true);
+			user.setEnabled(false);
 			user.setEmailVerified(false);
 			user = userRepo.save(user);
 
@@ -122,7 +122,6 @@ public class UserCredentials implements UserDetailsService {
 		}
 
 		User user = vToken.getUser();
-		user.setEnabled(true);
 		user.setEmailVerified(true);
 		userRepo.save(user);
 		tokenRepository.delete(vToken);

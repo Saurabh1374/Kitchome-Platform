@@ -65,10 +65,13 @@ public class User extends BaseEntity {
     // Getters and Setters
     @JsonProperty("roles")
     public void setRoles(Set<Role> roles) {
-        this.roles = roles;
+        this.roles = (roles != null) ? new HashSet<>(roles) : new HashSet<>();
     }
 
     public void setRoles(Role role) {
+        if (this.roles == null) {
+            this.roles = new HashSet<>();
+        }
         this.roles.add(role);
     }
 }

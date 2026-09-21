@@ -158,7 +158,11 @@ public class CustomUserDetails implements UserDetails, OAuth2User {
 
 	@Override
 	public boolean isEnabled() {
-		return this.enabled;
+		// Enabled in Spring Security corresponds to email verification so unverified users
+		// receive DisabledException ("Please verify your email"), while verified pending users
+		// can authenticate to access the onboarding waiting room. Full enterprise provisioning
+		// is governed by users.enabled in the database.
+		return this.emailVerified;
 	}
 
 }

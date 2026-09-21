@@ -168,9 +168,14 @@
                         const urlParams = new URLSearchParams(window.location.search);
                         const redirectUri = urlParams.get("redirect_uri");
                         const token = (data.payload && data.payload.accessToken) ? data.payload.accessToken : (data.data && data.data.accessToken ? data.data.accessToken : "");
+                        const refreshToken = (data.payload && data.payload.refreshToken) ? data.payload.refreshToken : (data.data && data.data.refreshToken ? data.data.refreshToken : "");
                         if (redirectUri) {
                             const separator = redirectUri.includes("?") ? "&" : "?";
-                            window.location.href = `${redirectUri}${separator}jwt=${encodeURIComponent(token)}`;
+                            let redirectUrl = `${redirectUri}${separator}jwt=${encodeURIComponent(token)}`;
+                            if (refreshToken) {
+                                redirectUrl += `&refresh_token=${encodeURIComponent(refreshToken)}`;
+                            }
+                            window.location.href = redirectUrl;
                         } else {
                             window.location.href = "/dashboard";
                         }

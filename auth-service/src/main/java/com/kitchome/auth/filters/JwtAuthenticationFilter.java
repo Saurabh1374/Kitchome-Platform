@@ -111,6 +111,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 if (!user.isEmailVerified()) {
                     // Allowed paths for unverified users
                     boolean isAllowedPath = path.equals("/verify-email") ||
+                            path.equals("/onboarding") ||
+                            path.equals("/onboardings") ||
                             path.equals("/api/v1/auth/resend-verification") ||
                             path.equals("/api/v1/auth/logout") ||
                             path.startsWith("/css/") ||
@@ -137,6 +139,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     path.equals("/login") ||
                     path.equals("/register") ||
                     path.equals("/verify-email") ||
+                    path.equals("/onboarding") ||
+                    path.equals("/onboardings") ||
                     path.startsWith("/css/") ||
                     path.startsWith("/js/");
             if (isPublicPath) {

@@ -50,17 +50,43 @@ public class AuthViewController {
 
     @GetMapping("/dashboard")
     public String dashboard(Model model) {
+        model.addAttribute("isAdmin", false);
+        model.addAttribute("pendingOnboardingsCount", 0);
+
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth != null && auth.isAuthenticated() && !(auth instanceof AnonymousAuthenticationToken)) {
-            try {
-                UnifiedProfileResponseDTO profile = promotionService.getUnifiedProfile(auth.getName());
-                model.addAttribute("profile", profile);
-                boolean isAdmin = profile.getRoles() != null && profile.getRoles().contains("ADMIN");
+            User currentUser = userRepo.findByUsername(auth.getName())
+                    .or(() -> userRepo.findUserByUsernameIgnoreCase(auth.getName()))
+                    .or(() -> userRepo.findUserByEmailIgnoreCase(auth.getName()))
+                    .orElse(null);
+            model.addAttribute("currentUser", currentUser);
+
+            if (currentUser != null) {
+                boolean isAdmin = currentUser.getRoles() != null &&
+                        currentUser.getRoles().stream().anyMatch(r -> r.name().contains("ADMIN"));
+                if (!isAdmin && !currentUser.isEnabled()) {
+                    // Pending user: route to onboarding waiting room
+                    return "redirect:/onboarding";
+                }
                 model.addAttribute("isAdmin", isAdmin);
                 if (isAdmin) {
                     List<User> pendingUsers = userRepo.findByEnabledFalse();
                     model.addAttribute("pendingOnboardings", pendingUsers);
                     model.addAttribute("pendingOnboardingsCount", pendingUsers.size());
+                }
+            }
+
+            try {
+                UnifiedProfileResponseDTO profile = promotionService.getUnifiedProfile(auth.getName());
+                model.addAttribute("profile", profile);
+                if (currentUser == null) {
+                    boolean isAdmin = profile.getRoles() != null && profile.getRoles().contains("ADMIN");
+                    model.addAttribute("isAdmin", isAdmin);
+                    if (isAdmin) {
+                        List<User> pendingUsers = userRepo.findByEnabledFalse();
+                        model.addAttribute("pendingOnboardings", pendingUsers);
+                        model.addAttribute("pendingOnboardingsCount", pendingUsers.size());
+                    }
                 }
             } catch (Exception e) {
                 log.warn("Could not pre-load unified profile for {}: {}", auth.getName(), e.getMessage());
@@ -74,26 +100,41 @@ public class AuthViewController {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         boolean isAuthenticated = (auth != null && auth.isAuthenticated() && !(auth instanceof AnonymousAuthenticationToken));
         model.addAttribute("isAuthenticated", isAuthenticated);
+        model.addAttribute("isAdmin", false);
+        model.addAttribute("pendingOnboardingsCount", 0);
 
         if (isAuthenticated) {
+            User currentUser = userRepo.findByUsername(auth.getName())
+                    .or(() -> userRepo.findUserByUsernameIgnoreCase(auth.getName()))
+                    .or(() -> userRepo.findUserByEmailIgnoreCase(auth.getName()))
+                    .orElse(null);
+            model.addAttribute("currentUser", currentUser);
+
+            boolean isAdmin = (currentUser != null && currentUser.getRoles() != null &&
+                    currentUser.getRoles().stream().anyMatch(r -> r.name().contains("ADMIN")));
+
             try {
                 UnifiedProfileResponseDTO profile = promotionService.getUnifiedProfile(auth.getName());
                 model.addAttribute("profile", profile);
-                boolean isAdmin = profile.getRoles() != null && profile.getRoles().contains("ADMIN");
-                model.addAttribute("isAdmin", isAdmin);
+                if (profile != null && profile.getRoles() != null && profile.getRoles().contains("ADMIN")) {
+                    isAdmin = true;
+                }
+            } catch (Exception e) {
+                log.warn("Error loading unified profile for {}: {}", auth.getName(), e.getMessage());
+            }
 
-                if (isAdmin) {
+            model.addAttribute("isAdmin", isAdmin);
+
+            if (isAdmin) {
+                try {
                     List<User> pendingUsers = userRepo.findByEnabledFalse();
                     model.addAttribute("pendingUsers", pendingUsers);
                     model.addAttribute("pendingOnboardingsCount", pendingUsers.size());
                     model.addAttribute("organizations", organizationRepo.findAll());
                     model.addAttribute("approvedUsers", userRepo.findByEnabled(true));
-                } else {
-                    User currentUser = userRepo.findByUsername(auth.getName()).orElse(null);
-                    model.addAttribute("currentUser", currentUser);
+                } catch (Exception e) {
+                    log.error("Error loading admin onboarding tables: {}", e.getMessage());
                 }
-            } catch (Exception e) {
-                log.warn("Error loading onboarding view for {}: {}", auth.getName(), e.getMessage());
             }
         }
         return "onboardings";

@@ -160,7 +160,7 @@ class UserCredentialsTest {
 
         userCredentials.verifyUser("valid-token");
 
-        assertTrue(mockUser.isEnabled());
+        assertFalse(mockUser.isEnabled());
         assertTrue(mockUser.isEmailVerified());
         verify(userRepo).save(mockUser);
         verify(tokenRepository).delete(token);

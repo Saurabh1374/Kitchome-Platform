@@ -78,16 +78,17 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
             user.setUsername(email); // Use email as username for social login
             user.setProvider(provider);
             user.setProviderId(providerId);
-            user.setEnabled(emailVerified);
             user.setEmailVerified(emailVerified);
             boolean isFirstAdmin = (userRepository.count() == 0 || userRepository.countAdminUsers() == 0);
             if (isFirstAdmin) {
                 user.setRoles(Set.of(Role.ADMIN, Role.USER));
                 user.setTier("enterprise");
+                user.setEnabled(true);
                 log.info("First-come preference: Registered OAuth2 user {} as founding ADMIN", email);
             } else {
                 user.setRoles(Set.of(Role.USER));
                 user.setTier("free");
+                user.setEnabled(false);
             }
             user = userRepository.save(user);
             

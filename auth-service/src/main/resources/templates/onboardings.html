@@ -117,10 +117,10 @@
                                         </td>
                                         <td style="padding: 1rem; text-align: right;">
                                             <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
-                                                <button th:onclick="'approveOnboarding(' + ${u.id} + ')'" class="btn btn-primary" style="padding: 0.4rem 0.9rem; font-size: 0.8rem;">
+                                                <button th:data-id="${u.id}" onclick="approveOnboarding(this.getAttribute('data-id'))" class="btn btn-primary" style="padding: 0.4rem 0.9rem; font-size: 0.8rem;">
                                                     Approve & Provision
                                                 </button>
-                                                <button th:onclick="'rejectOnboarding(' + ${u.id} + ')'" class="btn btn-outline" style="padding: 0.4rem 0.9rem; font-size: 0.8rem; color: var(--danger); border-color: rgba(239,68,68,0.3);">
+                                                <button th:data-id="${u.id}" onclick="rejectOnboarding(this.getAttribute('data-id'))" class="btn btn-outline" style="padding: 0.4rem 0.9rem; font-size: 0.8rem; color: var(--danger); border-color: rgba(239,68,68,0.3);">
                                                     Reject
                                                 </button>
                                             </div>
@@ -176,7 +176,7 @@
                                             </span>
                                         </td>
                                         <td style="padding: 0.75rem 1rem; text-align: right;">
-                                            <button th:onclick="'invalidateSession(\'' + ${au.username} + '\')'" class="btn btn-outline" style="padding: 0.25rem 0.6rem; font-size: 0.75rem; border-color: rgba(239,68,68,0.3); color: var(--danger);">
+                                            <button th:data-username="${au.username}" onclick="invalidateSession(this.getAttribute('data-username'))" class="btn btn-outline" style="padding: 0.25rem 0.6rem; font-size: 0.75rem; border-color: rgba(239,68,68,0.3); color: var(--danger);">
                                                 🚨 Invalidate Tokens
                                             </button>
                                         </td>

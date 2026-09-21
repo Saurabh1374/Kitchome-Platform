@@ -71,7 +71,7 @@ public class AdminOnboardingController {
         }
 
         user.setEnabled(true);
-        user.setRoles(Collections.singleton(selectedRole));
+        user.setRoles(new HashSet<>(Set.of(selectedRole)));
 
         if (orgCode != null && !orgCode.isBlank()) {
             Organization org = organizationRepo.findByCode(orgCode).orElse(null);
@@ -82,22 +82,61 @@ public class AdminOnboardingController {
 
         userRepo.save(user);
 
-        // Sync initial approved tenant membership to downstream PostgreSQL (rag_pg)
+        // Sync initial approved tenant membership and profiles to downstream PostgreSQL (rag_pg)
         try {
             String tenantId = (user.getOrganization() != null) ? user.getOrganization().getCode() : "default";
             String memId = "mem_" + UUID.randomUUID().toString().replace("-", "").substring(0, 12);
             double now = System.currentTimeMillis() / 1000.0;
             String approver = (auth != null) ? auth.getName() : "admin";
 
-            String sql = "INSERT INTO user_tenant_memberships (" +
+            String ragRole;
+            int clearance;
+            List<String> scopes;
+            if (selectedRole == Role.ADMIN) {
+                ragRole = "admin";
+                clearance = 3;
+                scopes = List.of("*");
+            } else if (selectedRole == Role.MODERATOR) {
+                ragRole = "ingestion_mod";
+                clearance = 1;
+                scopes = List.of("rag:read", "ingestion:write");
+            } else {
+                ragRole = "member";
+                clearance = 1;
+                scopes = List.of("rag:read");
+            }
+
+            // 1. user_tenant_memberships
+            String sqlMem = "INSERT INTO user_tenant_memberships (" +
                          "id, user_id, tenant_id, role_in_tenant, status, is_default, approved_by, approved_at, created_at" +
                          ") VALUES (?, ?, ?, ?, 'APPROVED', TRUE, ?, ?, ?) " +
                          "ON CONFLICT(user_id, tenant_id) DO UPDATE SET " +
                          "role_in_tenant = EXCLUDED.role_in_tenant, status = 'APPROVED', approved_by = EXCLUDED.approved_by;";
-            ragJdbcTemplate.update(sql, memId, user.getUsername(), tenantId, selectedRole.getRole(), approver, now, now);
-            log.info("Provisioned user_tenant_memberships in rag_pg for username={} tenant={}", user.getUsername(), tenantId);
+            ragJdbcTemplate.update(sqlMem, memId, user.getUsername(), tenantId, selectedRole.getRole(), approver, now, now);
+
+            // 2. service_user_profiles
+            String sqlProf = "INSERT INTO service_user_profiles (" +
+                         "tenant_id, user_id, status, role, clearance_level, created_at, approved_at, approved_by, is_founder" +
+                         ") VALUES (?, ?, 'APPROVED', ?, ?, ?, ?, ?, FALSE) " +
+                         "ON CONFLICT(tenant_id, user_id) DO UPDATE SET " +
+                         "status = 'APPROVED', role = EXCLUDED.role, clearance_level = EXCLUDED.clearance_level, approved_at = EXCLUDED.approved_at, approved_by = EXCLUDED.approved_by;";
+            ragJdbcTemplate.update(sqlProf, tenantId, user.getUsername(), ragRole, clearance, now, now, approver);
+
+            // 3. service_user_roles
+            String sqlRole = "INSERT INTO service_user_roles (tenant_id, user_id, role, assigned_at) " +
+                         "VALUES (?, ?, ?, ?) ON CONFLICT(tenant_id, user_id, role) DO UPDATE SET assigned_at = EXCLUDED.assigned_at;";
+            ragJdbcTemplate.update(sqlRole, tenantId, user.getUsername(), ragRole, now);
+
+            // 4. service_user_scopes
+            for (String scope : scopes) {
+                String sqlScope = "INSERT INTO service_user_scopes (tenant_id, user_id, scope, granted_by, granted_at) " +
+                             "VALUES (?, ?, ?, ?, ?) ON CONFLICT(tenant_id, user_id, scope) DO UPDATE SET granted_by = EXCLUDED.granted_by, granted_at = EXCLUDED.granted_at;";
+                ragJdbcTemplate.update(sqlScope, tenantId, user.getUsername(), scope, approver, now);
+            }
+
+            log.info("Provisioned user tables in rag_pg for username={} tenant={} role={}", user.getUsername(), tenantId, ragRole);
         } catch (Exception ex) {
-            log.warn("Could not sync user_tenant_memberships to rag_pg (non-fatal): {}", ex.getMessage());
+            log.warn("Could not sync user provisioning to rag_pg (non-fatal): {}", ex.getMessage());
         }
 
         return ResponseEntity.ok(ApiResponse.success("User '" + user.getUsername() + "' onboarding approved with role " + selectedRole.getRole()));

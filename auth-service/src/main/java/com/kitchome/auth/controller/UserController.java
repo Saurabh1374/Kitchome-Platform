@@ -172,7 +172,20 @@ public class UserController {
 					.filter(c -> "refreshToken".equals(c.getName()))
 					.map(Cookie::getValue)
 					.findFirst()
-					.orElseThrow(() -> new AuthException(ErrorCode.TOKEN_NOT_FOUND));
+					.orElse(null);
+
+			if (rawToken == null || rawToken.isBlank()) {
+				String authHeader = httpRequest.getHeader(HttpHeaders.AUTHORIZATION);
+				if (authHeader != null && authHeader.toLowerCase().startsWith("bearer ")) {
+					rawToken = authHeader.substring(7).trim();
+				} else {
+					rawToken = httpRequest.getHeader("X-Refresh-Token");
+				}
+			}
+
+			if (rawToken == null || rawToken.isBlank()) {
+				throw new AuthException(ErrorCode.TOKEN_NOT_FOUND);
+			}
 			String fingerprint = getFingerprint(httpRequest);
 			String ip = httpRequest.getRemoteAddr();
 

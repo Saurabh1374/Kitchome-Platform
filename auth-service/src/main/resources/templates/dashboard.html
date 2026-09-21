@@ -51,7 +51,7 @@
 
             <!-- Admin Alert Banner: Pending Onboardings Awaiting Review -->
             <div id="admin-onboarding-alert" class="glass animate-slide-up"
-                 th:style="${isAdmin and pendingOnboardingsCount != null and pendingOnboardingsCount > 0} ? 'padding: 1rem 1.5rem; border-radius: 16px; background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;' : 'display: none;'">
+                 th:style="${isAdmin != null and isAdmin and pendingOnboardingsCount != null and pendingOnboardingsCount > 0} ? 'padding: 1rem 1.5rem; border-radius: 16px; background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;' : 'display: none;'">
                 <div style="display: flex; align-items: center; gap: 0.75rem;">
                     <span style="font-size: 1.5rem;">⚠️</span>
                     <div>
@@ -139,7 +139,7 @@
 
             <!-- Admin Section: Organization & Tenant Management (Admins Only) -->
             <section id="admin-org-section" class="glass animate-slide-up"
-                     th:style="${isAdmin} ? 'padding: 2rem; border-radius: 24px;' : 'padding: 2rem; border-radius: 24px; display: none;'">
+                     th:style="${isAdmin != null and isAdmin} ? 'padding: 2rem; border-radius: 24px;' : 'padding: 2rem; border-radius: 24px; display: none;'">
                 <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
                     <div>
                         <div style="display: flex; align-items: center; gap: 0.5rem;">
@@ -185,7 +185,7 @@
 
             <!-- Admin Section: Pending Access Promotion Approvals (Admins Only) -->
             <section id="admin-approvals-section" class="glass animate-slide-up"
-                     th:style="${isAdmin} ? 'padding: 2rem; border-radius: 24px;' : 'padding: 2rem; border-radius: 24px; display: none;'">
+                     th:style="${isAdmin != null and isAdmin} ? 'padding: 2rem; border-radius: 24px;' : 'padding: 2rem; border-radius: 24px; display: none;'">
                 <div style="margin-bottom: 1.5rem;">
                     <div style="display: flex; align-items: center; gap: 0.5rem;">
                         <h3 style="font-size: 1.25rem; font-weight: 700; margin: 0;">Pending Promotion Requests</h3>
@@ -222,7 +222,7 @@
 
             <!-- Admin Section: Pending User Onboardings (SSO Gate) -->
             <section id="admin-onboardings-section" class="glass animate-slide-up"
-                     th:style="${isAdmin} ? 'padding: 2rem; border-radius: 24px;' : 'padding: 2rem; border-radius: 24px; display: none;'">
+                     th:style="${isAdmin != null and isAdmin} ? 'padding: 2rem; border-radius: 24px;' : 'padding: 2rem; border-radius: 24px; display: none;'">
                 <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
                     <div>
                         <div style="display: flex; align-items: center; gap: 0.5rem;">
@@ -274,10 +274,10 @@
                                     </td>
                                     <td style="padding: 0.85rem 1rem;">
                                         <div style="display: flex; gap: 0.5rem;">
-                                            <button th:onclick="'approveOnboarding(' + ${u.id} + ')'" class="btn btn-primary" style="padding: 0.3rem 0.75rem; font-size: 0.75rem;">
+                                            <button th:data-id="${u.id}" onclick="approveOnboarding(this.getAttribute('data-id'))" class="btn btn-primary" style="padding: 0.3rem 0.75rem; font-size: 0.75rem;">
                                                 Approve
                                             </button>
-                                            <button th:onclick="'rejectOnboarding(' + ${u.id} + ')'" class="btn btn-outline" style="padding: 0.3rem 0.75rem; font-size: 0.75rem; color: var(--danger); border-color: rgba(239,68,68,0.3);">
+                                            <button th:data-id="${u.id}" onclick="rejectOnboarding(this.getAttribute('data-id'))" class="btn btn-outline" style="padding: 0.3rem 0.75rem; font-size: 0.75rem; color: var(--danger); border-color: rgba(239,68,68,0.3);">
                                                 Reject
                                             </button>
                                         </div>
@@ -296,7 +296,7 @@
 
             <!-- Admin Section: Active Users & Token Invalidation (Admins Only) -->
             <section id="admin-users-section" class="glass animate-slide-up"
-                     th:style="${isAdmin} ? 'padding: 2rem; border-radius: 24px;' : 'padding: 2rem; border-radius: 24px; display: none;'">
+                     th:style="${isAdmin != null and isAdmin} ? 'padding: 2rem; border-radius: 24px;' : 'padding: 2rem; border-radius: 24px; display: none;'">
                 <div style="margin-bottom: 1.5rem;">
                     <div style="display: flex; align-items: center; gap: 0.5rem;">
                         <h3 style="font-size: 1.25rem; font-weight: 700; margin: 0;">Active Users & Session Revocation</h3>
